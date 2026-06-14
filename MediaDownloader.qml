@@ -459,8 +459,8 @@ PluginComponent {
     }
 
     // Popout Dialog Layout
-    popoutWidth: 380
-    popoutHeight: 480
+    popoutWidth: 440
+    popoutHeight: 560
 
     popoutContent: Component {
         PopoutComponent {
@@ -650,7 +650,7 @@ PluginComponent {
 
                 ScrollView {
                     width: parent.width
-                    height: root.customMode !== "" ? 120 : 200
+                    height: root.customMode !== "" ? 180 : 260
                     clip: true
 
                     Column {
