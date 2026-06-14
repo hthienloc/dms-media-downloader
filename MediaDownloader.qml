@@ -32,7 +32,8 @@ PluginComponent {
     }
 
     // Read settings
-    readonly property string downloadPath: pluginData.downloadPath ?? (Quickshell.env("HOME") + "/Downloads")
+    readonly property string downloadPathAudio: pluginData.downloadPathAudio ?? (Quickshell.env("HOME") + "/Music")
+    readonly property string downloadPathVideo: pluginData.downloadPathVideo ?? (Quickshell.env("HOME") + "/Videos")
     readonly property string quickVideoFormat: pluginData.quickVideoFormat ?? "mp4"
     readonly property string quickVideoRes: pluginData.quickVideoRes ?? "1080p"
     readonly property string quickAudioFormat: pluginData.quickAudioFormat ?? "mp3"
@@ -177,6 +178,7 @@ PluginComponent {
 
     // Function to add and start a download process
     function startDownload(url, type, format, quality) {
+        var path = (type === "audio") ? root.downloadPathAudio : root.downloadPathVideo;
         downloadsModel.append({
             url: url,
             title: "Fetching title...",
@@ -187,7 +189,8 @@ PluginComponent {
             type: type,
             format: format,
             quality: quality,
-            fullPath: ""
+            fullPath: "",
+            downloadPath: path
         });
         
         var idx = downloadsModel.count - 1;
@@ -296,7 +299,7 @@ PluginComponent {
                         "--newline",
                         "--progress",
                         "--progress-template", "[Progress];%(progress.status)s;%(progress.downloaded_bytes)s;%(progress.total_bytes)s;%(progress.total_bytes_estimate)s;%(progress.speed)s;%(progress.eta)s",
-                        "--paths", root.downloadPath,
+                        "--paths", model.downloadPath,
                         "--output", "%(title)s.%(ext)s"
                     ];
 
@@ -924,7 +927,7 @@ PluginComponent {
                                                     downloadsModel.setProperty(index, "progress", 0);
                                                     downloadsModel.setProperty(index, "speed", "0 B/s");
                                                     downloadsModel.setProperty(index, "eta", "--:--");
-                                                    root.startDownload(model.url, model.type, model.format, model.quality);
+                                                    root.startDownload(model.url, model.type, model.format, model.quality, model.downloadPath);
                                                     downloadsModel.remove(index);
                                                 }
                                             }
@@ -936,7 +939,7 @@ PluginComponent {
                                                 iconColor: Theme.primary
                                                 tooltipText: I18n.tr("Play")
                                                 onClicked: {
-                                                    let p = model.fullPath || (root.downloadPath + "/" + model.title);
+                                                    let p = model.fullPath || (model.downloadPath + "/" + model.title);
                                                     Quickshell.execDetached(["xdg-open", p]);
                                                 }
                                             }
@@ -948,7 +951,7 @@ PluginComponent {
                                                 iconColor: Theme.primary
                                                 tooltipText: I18n.tr("Open File")
                                                 onClicked: {
-                                                    let p = model.fullPath || (root.downloadPath + "/" + model.title);
+                                                    let p = model.fullPath || (model.downloadPath + "/" + model.title);
                                                     Quickshell.execDetached(["xdg-open", p]);
                                                 }
                                             }
@@ -960,7 +963,7 @@ PluginComponent {
                                                 iconColor: Theme.primary
                                                 tooltipText: I18n.tr("Open Folder")
                                                 onClicked: {
-                                                    let p = model.fullPath || (root.downloadPath + "/" + model.title);
+                                                    let p = model.fullPath || (model.downloadPath + "/" + model.title);
                                                     let dir = p.substring(0, p.lastIndexOf("/"));
                                                     Quickshell.execDetached(["xdg-open", dir]);
                                                 }
@@ -1077,7 +1080,7 @@ PluginComponent {
                             icon: "play_arrow",
                             action: function() {
                                 let item = downloadsModel.get(root.activeHistoryIndex);
-                                let p = item.fullPath || (root.downloadPath + "/" + item.title);
+                                let p = item.fullPath || (item.downloadPath + "/" + item.title);
                                 Quickshell.execDetached(["xdg-open", p]);
                             }
                         },
@@ -1086,7 +1089,7 @@ PluginComponent {
                             icon: "open_in_new",
                             action: function() {
                                 let item = downloadsModel.get(root.activeHistoryIndex);
-                                let p = item.fullPath || (root.downloadPath + "/" + item.title);
+                                let p = item.fullPath || (item.downloadPath + "/" + item.title);
                                 Quickshell.execDetached(["xdg-open", p]);
                             }
                         },
@@ -1095,7 +1098,7 @@ PluginComponent {
                             icon: "folder",
                             action: function() {
                                 let item = downloadsModel.get(root.activeHistoryIndex);
-                                let p = item.fullPath || (root.downloadPath + "/" + item.title);
+                                let p = item.fullPath || (item.downloadPath + "/" + item.title);
                                 let dir = p.substring(0, p.lastIndexOf("/"));
                                 Quickshell.execDetached(["xdg-open", dir]);
                             }

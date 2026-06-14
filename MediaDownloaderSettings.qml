@@ -22,10 +22,18 @@ PluginSettings {
         }
 
         StringSettingPlus {
-            settingKey: "downloadPath"
-            label: "Download Folder"
-            description: "Directory where files will be saved."
-            defaultValue: Quickshell.env("HOME") + "/Downloads"
+            settingKey: "downloadPathAudio"
+            label: "Audio Download Folder"
+            description: "Directory where audio files will be saved."
+            defaultValue: Quickshell.env("HOME") + "/Music"
+            isDirectory: true
+        }
+
+        StringSettingPlus {
+            settingKey: "downloadPathVideo"
+            label: "Video Download Folder"
+            description: "Directory where video files will be saved."
+            defaultValue: Quickshell.env("HOME") + "/Videos"
             isDirectory: true
         }
     }
