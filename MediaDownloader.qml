@@ -172,8 +172,12 @@ PluginComponent {
                         isSupportedFormatForThumbnail = (model.format === "mp4");
                     }
 
-                    if (root.embedThumbnail && isSupportedFormatForThumbnail) {
-                        args.push("--embed-thumbnail");
+                    if (root.embedThumbnail) {
+                        if (isSupportedFormatForThumbnail) {
+                            args.push("--embed-thumbnail");
+                        } else {
+                            args.push("--write-thumbnail");
+                        }
                         args.push("--convert-thumbnails");
                         args.push("jpg");
                     }
