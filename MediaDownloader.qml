@@ -54,6 +54,7 @@ PluginComponent {
     property string ytdlpVersion: ""
     property string ytdlpLatestVersion: ""
     property bool ytdlpOutdated: false
+    property bool updatingYtdlp: false
 
     // Custom configuration states
     property string customFormat: ""
@@ -132,6 +133,33 @@ PluginComponent {
                         root.ytdlpVersion = versionStdout.trim().split(" ")[0];
                     }
                 });
+            }
+        });
+    }
+
+    function updateYtdlp() {
+        root.updatingYtdlp = true;
+        if (typeof ToastService !== "undefined" && ToastService) {
+            ToastService.showInfo("Updating yt-dlp...");
+        }
+        
+        Proc.runCommand("mediaDownloader.doUpdate", ["yt-dlp", "-U"], (stdout, exitCode) => {
+            root.updatingYtdlp = false;
+            var output = stdout.trim();
+            if (exitCode === 0) {
+                if (typeof ToastService !== "undefined" && ToastService) {
+                    ToastService.showSuccess("yt-dlp updated successfully");
+                }
+                root.checkYtdlpVersion();
+            } else {
+                var isPkgManager = output.indexOf("package manager") !== -1 || output.indexOf("manual build") !== -1;
+                var errorMsg = isPkgManager 
+                    ? "Cannot update: yt-dlp was installed via package manager." 
+                    : "Failed to update: " + (output.substring(0, 100) || "Unknown error");
+                
+                if (typeof ToastService !== "undefined" && ToastService) {
+                    ToastService.showError(errorMsg);
+                }
             }
         });
     }
@@ -918,7 +946,7 @@ PluginComponent {
                 // yt-dlp Version Info
                 Row {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: 4
+                    spacing: Theme.spacingS
                     opacity: root.ytdlpVersion !== "" ? 0.7 : 0.0
                     Behavior on opacity { NumberAnimation { duration: 200 } }
 
@@ -935,6 +963,38 @@ PluginComponent {
                             : "yt-dlp v" + root.ytdlpVersion
                         font.pixelSize: Theme.fontSizeSmall - 2
                         color: root.ytdlpOutdated ? Theme.error : Theme.surfaceVariantText
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Button {
+                        text: "Update"
+                        visible: root.ytdlpOutdated && !root.updatingYtdlp
+                        height: 20
+                        flat: true
+                        anchors.verticalCenter: parent.verticalCenter
+                        background: Rectangle {
+                            color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.15) : Theme.withAlpha(Theme.primary, 0.05)
+                            radius: Theme.cornerRadiusSmall
+                        }
+                        contentItem: StyledText {
+                            text: "Update"
+                            font.pixelSize: Theme.fontSizeSmall - 2
+                            font.weight: Font.Bold
+                            color: Theme.primary
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onClicked: {
+                            root.updateYtdlp();
+                        }
+                    }
+
+                    StyledText {
+                        text: "Updating..."
+                        visible: root.updatingYtdlp
+                        font.pixelSize: Theme.fontSizeSmall - 2
+                        font.italic: true
+                        color: Theme.primary
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
