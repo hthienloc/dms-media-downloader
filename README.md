@@ -1,13 +1,8 @@
 # Media Downloader
 
-Download audio and video from web links using `yt-dlp` directly from your status bar.
+A feature-rich media downloader for DankMaterialShell, inspired by Parabolic. Powered by `yt-dlp`.
 
 <img src="screenshot.png" width="400" alt="Screenshot">
-
-## Requirements
-
-- `yt-dlp` - The backend downloader.
-- `ffmpeg` - Required for extracting audio formats (like MP3) and merging video streams.
 
 ## Install
 
@@ -23,31 +18,41 @@ git clone https://github.com/hthienloc/dms-media-downloader ~/.config/DankMateri
 
 ## Features
 
-- **Drag & Drop URL Input** - Drag and drop any link from your browser onto the bar icon to open download options immediately.
-- **One-Click Quick Downloads** - Instantly trigger downloads with pre-defined audio/video presets.
-- **Custom Configuration Options** - Specify output formats and quality resolutions on the fly.
-- **Persistent Queue** - Downloads run in the background, surviving popout closure.
-- **Progress Tracking** - Real-time speed, progress bars, and ETA indicators.
+- **Multi-format Support:** Download video (up to 4K) or extract high-quality audio.
+- **Real-time Feedback:** Live progress bars, download speed, and ETA.
+- **Pill Integration:** Monitor active downloads directly from the DankBar.
+- **Drag & Drop:** Drag links onto the bar icon to start downloading instantly.
+- **SponsorBlock:** Automatically remove sponsor segments from YouTube videos.
 
 ## Usage
 
 | Action | Result |
 |--------|--------|
-| Drag & Drop link | Pre-fill URL and open popout selection |
-| Left click | Toggle popout dashboard |
-| Right click | Quick download using current clipboard URL |
+| Left click | Open downloader dashboard |
+| Right click | Paste link from clipboard and open |
+| Drag link | Drop link onto pill to start download |
+
+## Requirements
+
+- `yt-dlp` - The core downloading engine.
+- `ffmpeg` - Required for merging video/audio and format conversion.
 
 ## Roadmap / TODO
 
-- [ ] Support password-protected sites (via keychain keyring).
-- [ ] Add support for downloading full YouTube playlists into directories.
-- [ ] Auto-extract subtitles if available.
-- [ ] Speed limit toggle on the fly from the popout.
+### Phase 1: History & Management
+- [ ] **History Actions:** Right-click completed items to "Open Folder" or "Play".
+- [ ] **Batch Clear:** One-click to remove all completed or failed items from history.
+- [ ] **Drag-out Support:** Drag completed files from history into other apps.
 
-## Credits
+### Phase 2: Metadata & Polish
+- [ ] **Native Info Preview:** Show thumbnail and video duration after pasting a link.
+- [ ] **Metadata Tagging:** Automatically embed thumbnails and tags into audio files.
+- [ ] **Playlist Support:** Select specific tracks when a playlist link is detected.
 
-- Inspired by GNOME's [Parabolic](https://github.com/NickvisionApps/Parabolic).
+### Phase 3: Advanced Features
+- [ ] **Authentication:** Support for cookies and netrc for private/restricted videos.
+- [ ] **Notifications:** System alerts when a large download finishes.
 
 ## License
 
-MIT
+GPL-3.0

@@ -103,7 +103,8 @@ PluginComponent {
             status: "fetching",
             type: type,
             format: format,
-            quality: quality
+            quality: quality,
+            fullPath: ""
         });
         
         var idx = downloadsModel.count - 1;
@@ -191,16 +192,20 @@ PluginComponent {
                             downloadsModel.setProperty(index, "eta", root.formatEta(eta));
                         } else if (line.indexOf("[download] Destination:") === 0) {
                             var dest = line.substring(23).trim();
+                            var fullP = dest;
                             if (dest.indexOf("/") !== -1) {
                                 dest = dest.substring(dest.lastIndexOf("/") + 1);
                             }
                             downloadsModel.setProperty(index, "title", dest);
+                            downloadsModel.setProperty(index, "fullPath", fullP);
                         } else if (line.indexOf("[Merger] Merging formats into") === 0) {
                             var merger = line.substring(30).replace(/"/g, "").trim();
+                            var fullM = merger;
                             if (merger.indexOf("/") !== -1) {
                                 merger = merger.substring(merger.lastIndexOf("/") + 1);
                             }
                             downloadsModel.setProperty(index, "title", merger);
+                            downloadsModel.setProperty(index, "fullPath", fullM);
                         }
                     }
                 }
@@ -751,19 +756,20 @@ PluginComponent {
                                                 }
                                             }
 
-                                            // Open File Button
+                                            // Open File Button (Play Now)
                                             Button {
                                                 width: 16
                                                 height: 16
                                                 visible: model.status === "completed"
                                                 background: Item {}
                                                 contentItem: DankIcon {
-                                                    name: "open_in_new"
-                                                    size: 14
+                                                    name: "play_arrow"
+                                                    size: 16
                                                     color: Theme.primary
                                                 }
                                                 onClicked: {
-                                                    Proc.runCommand("open-file", ["xdg-open", root.downloadPath + "/" + model.title]);
+                                                    let p = model.fullPath || (root.downloadPath + "/" + model.title);
+                                                    Quickshell.execDetached(["xdg-open", p]);
                                                 }
                                             }
 
@@ -779,9 +785,22 @@ PluginComponent {
                                                     color: Theme.primary
                                                 }
                                                 onClicked: {
-                                                    Proc.runCommand("open-folder", ["xdg-open", root.downloadPath]);
+                                                    let p = model.fullPath || (root.downloadPath + "/" + model.title);
+                                                    let dir = p.substring(0, p.lastIndexOf("/"));
+                                                    Quickshell.execDetached(["xdg-open", dir]);
                                                 }
                                             }
+                                        }
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    acceptedButtons: Qt.RightButton
+                                    onClicked: (mouse) => {
+                                        if (mouse.button === Qt.RightButton && model.status === "completed") {
+                                            root.activeHistoryIndex = index;
+                                            historyMenu.open(mouse.x, mouse.y);
                                         }
                                     }
                                 }
@@ -789,6 +808,39 @@ PluginComponent {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    property int activeHistoryIndex: -1
+    PluginMenu {
+        id: historyMenu
+        MenuItem {
+            text: I18n.tr("Play Now")
+            iconName: "play_arrow"
+            onTriggered: {
+                let item = downloadsModel.get(root.activeHistoryIndex);
+                let p = item.fullPath || (root.downloadPath + "/" + item.title);
+                Quickshell.execDetached(["xdg-open", p]);
+            }
+        }
+        MenuItem {
+            text: I18n.tr("Open Folder")
+            iconName: "folder"
+            onTriggered: {
+                let item = downloadsModel.get(root.activeHistoryIndex);
+                let p = item.fullPath || (root.downloadPath + "/" + item.title);
+                let dir = p.substring(0, p.lastIndexOf("/"));
+                Quickshell.execDetached(["xdg-open", dir]);
+            }
+        }
+        MenuSeparator {}
+        MenuItem {
+            text: I18n.tr("Remove from History")
+            iconName: "delete"
+            onTriggered: {
+                downloadsModel.remove(root.activeHistoryIndex);
+                root.updateActiveCount();
             }
         }
     }
