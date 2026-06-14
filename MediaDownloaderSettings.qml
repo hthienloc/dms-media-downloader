@@ -159,9 +159,9 @@ PluginSettings {
         UsageGuide {
             expanded: usageTitle.isExpanded
             items: [
-                "<b>Left-click</b> the pill to open the downloader panel.",
-                "<b>Right-click</b> the pill to paste a URL from your clipboard and open the panel.",
-                "<b>Drag and drop</b> links directly onto the pill to paste and open the panel."
+                "<b>Left-click</b> the pill to open the downloader popout.",
+                "<b>Right-click</b> the pill to paste a URL from your clipboard and open the popout.",
+                "<b>Drag and drop</b> links directly onto the pill to paste and open the popout."
             ]
         }
     }
