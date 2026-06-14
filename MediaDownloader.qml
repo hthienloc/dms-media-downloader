@@ -13,10 +13,6 @@ PluginComponent {
 
     pluginId: "mediaDownloader"
 
-    pillClickAction: function() {
-        root.triggerPopout();
-    }
-
     pillRightClickAction: function() {
         Proc.runCommand(
             "mediaDownloader.rightClickPaste",
