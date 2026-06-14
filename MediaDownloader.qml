@@ -12,7 +12,6 @@ PluginComponent {
     id: root
 
     pluginId: "mediaDownloader"
-    property var popoutService: null
 
     // Read settings
     readonly property string downloadPath: pluginData.downloadPath ?? (Quickshell.env("HOME") + "/Downloads")
@@ -216,9 +215,7 @@ PluginComponent {
         }
     }
 
-    pillClickAction: function() {
-        popoutService.togglePopout(root);
-    }
+
 
     horizontalBarPill: Component {
         Item {
@@ -267,7 +264,7 @@ PluginComponent {
                     
                     if (urlStr.indexOf("http://") === 0 || urlStr.indexOf("https://") === 0 || urlStr.indexOf("www.") === 0) {
                         root.activeUrl = urlStr;
-                        popoutService.openPopout(root);
+                        root.triggerPopout();
                     }
                 }
             }
@@ -321,7 +318,7 @@ PluginComponent {
                     
                     if (urlStr.indexOf("http://") === 0 || urlStr.indexOf("https://") === 0 || urlStr.indexOf("www.") === 0) {
                         root.activeUrl = urlStr;
-                        popoutService.openPopout(root);
+                        root.triggerPopout();
                     }
                 }
             }
