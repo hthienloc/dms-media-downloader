@@ -23,6 +23,7 @@ PluginSettings {
             label: "Audio Download Folder"
             description: "Directory where audio files will be saved."
             defaultValue: Quickshell.env("HOME") + "/Music"
+            placeholder: "e.g. " + Quickshell.env("HOME") + "/Music"
             isDirectory: true
         }
 
@@ -31,6 +32,7 @@ PluginSettings {
             label: "Video Download Folder"
             description: "Directory where video files will be saved."
             defaultValue: Quickshell.env("HOME") + "/Videos"
+            placeholder: "e.g. " + Quickshell.env("HOME") + "/Videos"
             isDirectory: true
         }
     }

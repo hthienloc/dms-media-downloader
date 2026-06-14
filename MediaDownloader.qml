@@ -32,8 +32,8 @@ PluginComponent {
     }
 
     // Read settings
-    readonly property string downloadPathAudio: pluginData.downloadPathAudio ?? (Quickshell.env("HOME") + "/Music")
-    readonly property string downloadPathVideo: pluginData.downloadPathVideo ?? (Quickshell.env("HOME") + "/Videos")
+    readonly property string downloadPathAudio: (pluginData.downloadPathAudio && pluginData.downloadPathAudio.trim() !== "") ? pluginData.downloadPathAudio : (Quickshell.env("HOME") + "/Music")
+    readonly property string downloadPathVideo: (pluginData.downloadPathVideo && pluginData.downloadPathVideo.trim() !== "") ? pluginData.downloadPathVideo : (Quickshell.env("HOME") + "/Videos")
     readonly property string quickVideoFormat: pluginData.quickVideoFormat ?? "mp4"
     readonly property string quickVideoRes: pluginData.quickVideoRes ?? "1080p"
     readonly property string quickAudioFormat: pluginData.quickAudioFormat ?? "mp3"
