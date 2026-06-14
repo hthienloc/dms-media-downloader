@@ -40,6 +40,9 @@ PluginComponent {
     readonly property bool sponsorBlock: pluginData.sponsorBlock ?? true
     readonly property bool limitRate: pluginData.limitRate ?? false
     readonly property int maxRate: pluginData.maxRate ?? 5000
+    readonly property bool embedThumbnail: pluginData.embedThumbnail ?? true
+    readonly property bool embedMetadata: pluginData.embedMetadata ?? true
+    readonly property bool embedSubs: pluginData.embedSubs ?? false
 
     // State variables
     property string activeUrl: ""
@@ -146,7 +149,6 @@ PluginComponent {
                         args.push("-x");
                         args.push("--audio-format");
                         args.push(model.format);
-                        args.push("--embed-thumbnail");
                         if (model.quality !== "best") {
                             args.push("--audio-quality");
                             args.push(model.quality);
@@ -161,6 +163,17 @@ PluginComponent {
                         }
                         args.push("--merge-output-format");
                         args.push(model.format);
+                    }
+
+                    if (root.embedThumbnail) {
+                        args.push("--embed-thumbnail");
+                    }
+                    if (root.embedMetadata) {
+                        args.push("--embed-metadata");
+                    }
+                    if (root.embedSubs && model.type === "video") {
+                        args.push("--embed-subs");
+                        args.push("--write-subs");
                     }
 
                     if (root.sponsorBlock) {

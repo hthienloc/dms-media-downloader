@@ -108,6 +108,27 @@ PluginSettings {
         }
 
         ToggleSettingPlus {
+            settingKey: "embedThumbnail"
+            label: "Embed Thumbnail"
+            description: "Embed video or audio thumbnail as cover art."
+            defaultValue: true
+        }
+
+        ToggleSettingPlus {
+            settingKey: "embedMetadata"
+            label: "Embed Metadata"
+            description: "Write metadata tags (title, artist, etc.) to the output file."
+            defaultValue: true
+        }
+
+        ToggleSettingPlus {
+            settingKey: "embedSubs"
+            label: "Embed Subtitles"
+            description: "Download and embed subtitles into video files."
+            defaultValue: false
+        }
+
+        ToggleSettingPlus {
             id: limitToggle
             settingKey: "limitRate"
             label: "Limit Download Speed"
