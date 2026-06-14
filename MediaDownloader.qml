@@ -13,6 +13,27 @@ PluginComponent {
 
     pluginId: "mediaDownloader"
 
+    pillClickAction: function() {
+        root.triggerPopout();
+    }
+
+    pillRightClickAction: function() {
+        Proc.runCommand(
+            "mediaDownloader.rightClickPaste",
+            ["sh", "-c", "wl-paste --no-newline || xclip -selection clipboard -o"],
+            (stdout, exitCode) => {
+                if (exitCode === 0 && stdout !== "") {
+                    var trimmed = stdout.trim();
+                    if (trimmed.indexOf("http://") === 0 || trimmed.indexOf("https://") === 0 || trimmed.indexOf("www.") === 0) {
+                        root.activeUrl = trimmed;
+                    }
+                }
+                root.triggerPopout();
+            },
+            0
+        );
+    }
+
     // Read settings
     readonly property string downloadPath: pluginData.downloadPath ?? (Quickshell.env("HOME") + "/Downloads")
     readonly property string quickVideoFormat: pluginData.quickVideoFormat ?? "mp4"
@@ -188,11 +209,15 @@ PluginComponent {
                     if (exitCode === 0) {
                         downloadsModel.setProperty(index, "status", "completed");
                         downloadsModel.setProperty(index, "progress", 100);
-                        ToastService?.showSuccess("Download Completed", downloadsModel.get(index).title || "File downloaded successfully");
+                        if (typeof ToastService !== "undefined" && ToastService) {
+                            ToastService.showSuccess("Download Completed", downloadsModel.get(index).title || "File downloaded successfully");
+                        }
                     } else {
                         if (downloadsModel.get(index).status !== "cancelled") {
                             downloadsModel.setProperty(index, "status", "error");
-                            ToastService?.showError("Download Failed", "Failed to download: " + downloadsModel.get(index).url);
+                            if (typeof ToastService !== "undefined" && ToastService) {
+                                ToastService.showError("Download Failed", "Failed to download: " + downloadsModel.get(index).url);
+                            }
                         }
                     }
                     root.updateActiveCount();
@@ -257,10 +282,11 @@ PluginComponent {
                     draggingOver = false;
                     var urlStr = "";
                     if (drop.hasUrls && drop.urls.length > 0) {
-                        urlStr = String(drop.urls[0]);
+                        urlStr = drop.urls[0].toString();
                     } else if (drop.hasText) {
                         urlStr = drop.text;
                     }
+                    urlStr = urlStr.trim();
                     
                     if (urlStr.indexOf("http://") === 0 || urlStr.indexOf("https://") === 0 || urlStr.indexOf("www.") === 0) {
                         root.activeUrl = urlStr;
@@ -311,10 +337,11 @@ PluginComponent {
                     draggingOver = false;
                     var urlStr = "";
                     if (drop.hasUrls && drop.urls.length > 0) {
-                        urlStr = String(drop.urls[0]);
+                        urlStr = drop.urls[0].toString();
                     } else if (drop.hasText) {
                         urlStr = drop.text;
                     }
+                    urlStr = urlStr.trim();
                     
                     if (urlStr.indexOf("http://") === 0 || urlStr.indexOf("https://") === 0 || urlStr.indexOf("www.") === 0) {
                         root.activeUrl = urlStr;
@@ -558,10 +585,49 @@ PluginComponent {
                 Separator {}
 
                 // Active / Past Downloads List
-                StyledText {
-                    text: "Downloads Queue"
-                    font.weight: Font.Bold
-                    font.pixelSize: Theme.fontSizeSmall
+                Item {
+                    width: parent.width
+                    height: Theme.fontSizeSmall + 8
+
+                    StyledText {
+                        text: "Downloads Queue"
+                        font.weight: Font.Bold
+                        font.pixelSize: Theme.fontSizeSmall
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Button {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: 20
+                        flat: true
+                        background: Item {}
+                        contentItem: Row {
+                            spacing: 4
+                            DankIcon {
+                                name: "delete_sweep"
+                                size: 14
+                                color: Theme.error
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            StyledText {
+                                text: "Clear History"
+                                font.pixelSize: Theme.fontSizeSmall - 2
+                                color: Theme.error
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+                        onClicked: {
+                            for (var i = downloadsModel.count - 1; i >= 0; i--) {
+                                var s = downloadsModel.get(i).status;
+                                if (s === "completed" || s === "cancelled" || s === "error") {
+                                    downloadsModel.remove(i);
+                                }
+                            }
+                            root.updateActiveCount();
+                        }
+                    }
                 }
 
                 ScrollView {
@@ -627,7 +693,7 @@ PluginComponent {
                                             text: model.status === "downloading" ? model.speed + " - ETA " + model.eta : (model.status === "fetching" ? "Initializing..." : "")
                                             font.pixelSize: Theme.fontSizeSmall - 2
                                             color: Theme.surfaceVariantText
-                                            width: parent.width - 32
+                                            width: parent.width - (model.status === "completed" ? 44 : 24)
                                         }
                                         
                                         // Cancel Button
@@ -666,6 +732,43 @@ PluginComponent {
                                                 downloadsModel.setProperty(index, "eta", "--:--");
                                                 root.startDownload(model.url, model.type, model.format, model.quality);
                                                 downloadsModel.remove(index);
+                                            }
+                                        }
+
+                                        // Open Actions Row
+                                        Row {
+                                            spacing: 6
+                                            visible: model.status === "completed"
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            // Open File Button
+                                            Button {
+                                                width: 16
+                                                height: 16
+                                                background: Item {}
+                                                contentItem: DankIcon {
+                                                    name: "open_in_new"
+                                                    size: 14
+                                                    color: Theme.primary
+                                                }
+                                                onClicked: {
+                                                    Proc.runCommand("open-file", ["xdg-open", root.downloadPath + "/" + model.title]);
+                                                }
+                                            }
+
+                                            // Open Folder Button
+                                            Button {
+                                                width: 16
+                                                height: 16
+                                                background: Item {}
+                                                contentItem: DankIcon {
+                                                    name: "folder"
+                                                    size: 14
+                                                    color: Theme.primary
+                                                }
+                                                onClicked: {
+                                                    Proc.runCommand("open-folder", ["xdg-open", root.downloadPath]);
+                                                }
                                             }
                                         }
                                     }
