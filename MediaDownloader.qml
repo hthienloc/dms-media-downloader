@@ -237,19 +237,8 @@ PluginComponent {
                         args.push(model.format);
                     }
 
-                    var isSupportedFormatForThumbnail = false;
-                    if (model.type === "audio") {
-                        isSupportedFormatForThumbnail = (model.format === "mp3" || model.format === "opus" || model.format === "flac");
-                    } else {
-                        isSupportedFormatForThumbnail = (model.format === "mp4");
-                    }
-
                     if (root.embedThumbnail) {
-                        if (isSupportedFormatForThumbnail) {
-                            args.push("--embed-thumbnail");
-                        } else {
-                            args.push("--write-thumbnail");
-                        }
+                        args.push("--write-thumbnail");
                         args.push("--convert-thumbnails");
                         args.push("jpg");
                     }
@@ -291,7 +280,31 @@ PluginComponent {
                             downloadsModel.setProperty(index, "speed", root.formatSpeed(speed));
                             downloadsModel.setProperty(index, "eta", root.formatEta(eta));
                         } else if (line.indexOf("[download] Destination:") === 0) {
-                            var dest = line.substring(23).trim();
+                            var dest = line.substring(23).replace(/"/g, "").trim();
+                            var fullP = dest;
+                            if (dest.indexOf("/") !== -1) {
+                                dest = dest.substring(dest.lastIndexOf("/") + 1);
+                            }
+                            downloadsModel.setProperty(index, "title", dest);
+                            downloadsModel.setProperty(index, "fullPath", fullP);
+                        } else if (line.indexOf("[ExtractAudio] Destination:") === 0) {
+                            var dest = line.substring(27).replace(/"/g, "").trim();
+                            var fullP = dest;
+                            if (dest.indexOf("/") !== -1) {
+                                dest = dest.substring(dest.lastIndexOf("/") + 1);
+                            }
+                            downloadsModel.setProperty(index, "title", dest);
+                            downloadsModel.setProperty(index, "fullPath", fullP);
+                        } else if (line.indexOf("[ffmpeg] Destination:") === 0) {
+                            var dest = line.substring(21).replace(/"/g, "").trim();
+                            var fullP = dest;
+                            if (dest.indexOf("/") !== -1) {
+                                dest = dest.substring(dest.lastIndexOf("/") + 1);
+                            }
+                            downloadsModel.setProperty(index, "title", dest);
+                            downloadsModel.setProperty(index, "fullPath", fullP);
+                        } else if (line.indexOf("[Metadata] Adding metadata to") === 0) {
+                            var dest = line.substring(29).replace(/"/g, "").trim();
                             var fullP = dest;
                             if (dest.indexOf("/") !== -1) {
                                 dest = dest.substring(dest.lastIndexOf("/") + 1);
@@ -313,6 +326,41 @@ PluginComponent {
                 onExited: (exitCode) => {
                     running = false;
                     if (exitCode === 0) {
+                        let item = downloadsModel.get(index);
+                        let audioPath = item.fullPath || (root.downloadPath + "/" + item.title);
+                        let lastDot = audioPath.lastIndexOf(".");
+                        
+                        if (root.embedThumbnail && lastDot !== -1) {
+                            let basePath = audioPath.substring(0, lastDot);
+                            let ext = audioPath.substring(lastDot + 1).toLowerCase();
+                            let tempPath = basePath + ".temp." + ext;
+                            let thumbPathJpg = basePath + ".jpg";
+                            let thumbPathPng = basePath + ".png";
+                            let thumbPathWebp = basePath + ".webp";
+                            
+                            let cmd = "";
+                            if (ext === "mp3") {
+                                cmd = `if [ -f "${thumbPathJpg}" ]; then thumb="${thumbPathJpg}"; elif [ -f "${thumbPathPng}" ]; then thumb="${thumbPathPng}"; elif [ -f "${thumbPathWebp}" ]; then thumb="${thumbPathWebp}"; else thumb=""; fi; if [ -n "$thumb" ]; then ffmpeg -y -i "${audioPath}" -i "$thumb" -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (front)" "${tempPath}" && mv "${tempPath}" "${audioPath}" && rm -f "$thumb"; fi`;
+                            } else if (ext === "mp4") {
+                                cmd = `if [ -f "${thumbPathJpg}" ]; then thumb="${thumbPathJpg}"; elif [ -f "${thumbPathPng}" ]; then thumb="${thumbPathPng}"; elif [ -f "${thumbPathWebp}" ]; then thumb="${thumbPathWebp}"; else thumb=""; fi; if [ -n "$thumb" ]; then ffmpeg -y -i "${audioPath}" -i "$thumb" -map 0 -map 1 -c copy -disposition:v:1 attached_pic "${tempPath}" && mv "${tempPath}" "${audioPath}" && rm -f "$thumb"; fi`;
+                            } else if (ext === "opus" || ext === "flac" || ext === "ogg") {
+                                cmd = `if [ -f "${thumbPathJpg}" ]; then thumb="${thumbPathJpg}"; elif [ -f "${thumbPathPng}" ]; then thumb="${thumbPathPng}"; elif [ -f "${thumbPathWebp}" ]; then thumb="${thumbPathWebp}"; else thumb=""; fi; if [ -n "$thumb" ]; then ffmpeg -y -i "${audioPath}" -i "$thumb" -map 0 -map 1 -c copy "${tempPath}" && mv "${tempPath}" "${audioPath}" && rm -f "$thumb"; fi`;
+                            }
+                            
+                            if (cmd !== "") {
+                                downloadsModel.setProperty(index, "status", "embedding");
+                                Proc.runCommand("mediaDownloader.embedThumbnail_" + index, ["sh", "-c", cmd], (stdout, embedExitCode) => {
+                                    downloadsModel.setProperty(index, "status", "completed");
+                                    downloadsModel.setProperty(index, "progress", 100);
+                                    if (typeof ToastService !== "undefined" && ToastService) {
+                                        ToastService.showSuccess("Download Completed", downloadsModel.get(index).title || "File downloaded successfully");
+                                    }
+                                    root.updateActiveCount();
+                                });
+                                return;
+                            }
+                        }
+                        
                         downloadsModel.setProperty(index, "status", "completed");
                         downloadsModel.setProperty(index, "progress", 100);
                         if (typeof ToastService !== "undefined" && ToastService) {
@@ -692,11 +740,11 @@ PluginComponent {
                                         }
                                         StyledText {
                                             id: progressText
-                                            text: model.status === "completed" ? "Done" : (model.status === "error" ? "Error" : (model.status === "cancelled" ? "Cancelled" : model.progress + "%"))
+                                            text: model.status === "completed" ? "Done" : (model.status === "error" ? "Error" : (model.status === "cancelled" ? "Cancelled" : (model.status === "embedding" ? "Embedding..." : model.progress + "%")))
                                             anchors.right: parent.right
                                             anchors.verticalCenter: parent.verticalCenter
                                             font.pixelSize: Theme.fontSizeSmall - 1
-                                            color: model.status === "error" ? Theme.error : (model.status === "completed" ? Theme.success : Theme.primary)
+                                            color: model.status === "error" ? Theme.error : (model.status === "completed" ? Theme.success : (model.status === "embedding" ? Theme.success : Theme.primary))
                                         }
                                     }
 
