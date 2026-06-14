@@ -143,7 +143,7 @@ PluginComponent {
             ToastService.showInfo("Updating yt-dlp...");
         }
         
-        Proc.runCommand("mediaDownloader.doUpdate", ["yt-dlp", "-U"], (stdout, exitCode) => {
+        Proc.runCommand("mediaDownloader.doUpdate", ["sh", "-c", "yt-dlp -U 2>&1"], (stdout, exitCode) => {
             root.updatingYtdlp = false;
             var output = stdout.trim();
             if (exitCode === 0) {
