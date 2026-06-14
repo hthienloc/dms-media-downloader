@@ -50,6 +50,11 @@ PluginComponent {
     property bool hasHistoryItems: false
     property string customMode: "" // "", "video", "audio"
 
+    // Version check variables
+    property string ytdlpVersion: ""
+    property string ytdlpLatestVersion: ""
+    property bool ytdlpOutdated: false
+
     // Custom configuration states
     property string customFormat: ""
     property string customQuality: ""
@@ -94,6 +99,45 @@ PluginComponent {
         var pad = (n) => n < 10 ? "0" + n : n;
         if (h > 0) return pad(h) + ":" + pad(m) + ":" + pad(s);
         return pad(m) + ":" + pad(s);
+    }
+
+    function checkYtdlpVersion() {
+        Proc.runCommand("mediaDownloader.checkUpdate", ["yt-dlp", "--update"], (stdout, exitCode) => {
+            var currentVersion = "";
+            var latestVersion = "";
+            var lines = stdout.split("\n");
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (line.indexOf("Current version:") === 0) {
+                    currentVersion = line.substring("Current version:".length).trim();
+                } else if (line.indexOf("Latest version:") === 0) {
+                    latestVersion = line.substring("Latest version:".length).trim();
+                }
+            }
+            
+            if (currentVersion !== "") {
+                var cur = currentVersion.indexOf("@") !== -1 ? currentVersion.split("@")[1] : currentVersion;
+                cur = cur.split(" ")[0].trim();
+                root.ytdlpVersion = cur;
+                
+                if (latestVersion !== "") {
+                    var lat = latestVersion.indexOf("@") !== -1 ? latestVersion.split("@")[1] : latestVersion;
+                    lat = lat.split(" ")[0].trim();
+                    root.ytdlpLatestVersion = lat;
+                    root.ytdlpOutdated = (cur !== lat);
+                }
+            } else {
+                Proc.runCommand("mediaDownloader.getVersion", ["yt-dlp", "--version"], (versionStdout, versionExitCode) => {
+                    if (versionExitCode === 0 && versionStdout.trim() !== "") {
+                        root.ytdlpVersion = versionStdout.trim().split(" ")[0];
+                    }
+                });
+            }
+        });
+    }
+
+    Component.onCompleted: {
+        root.checkYtdlpVersion();
     }
 
     // Function to add and start a download process
@@ -388,7 +432,7 @@ PluginComponent {
 
     // Popout Dialog Layout
     popoutWidth: 380
-    popoutHeight: 460
+    popoutHeight: 480
 
     popoutContent: Component {
         PopoutComponent {
@@ -868,6 +912,30 @@ PluginComponent {
                                 }
                             }
                         }
+                    }
+                }
+
+                // yt-dlp Version Info
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 4
+                    opacity: root.ytdlpVersion !== "" ? 0.7 : 0.0
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                    DankIcon {
+                        name: root.ytdlpOutdated ? "warning" : "info"
+                        size: 12
+                        color: root.ytdlpOutdated ? Theme.error : Theme.surfaceVariantText
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    StyledText {
+                        text: root.ytdlpOutdated 
+                            ? "yt-dlp v" + root.ytdlpVersion + " (Update available: v" + root.ytdlpLatestVersion + ")" 
+                            : "yt-dlp v" + root.ytdlpVersion
+                        font.pixelSize: Theme.fontSizeSmall - 2
+                        color: root.ytdlpOutdated ? Theme.error : Theme.surfaceVariantText
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
             }
