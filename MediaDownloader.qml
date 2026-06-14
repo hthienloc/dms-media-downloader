@@ -103,7 +103,7 @@ PluginComponent {
     // Instantiator for active download processes
     Instantiator {
         model: downloadsModel
-        delegate: QtObject {
+        delegate: Item {
             property bool isDownloading: model.status === "downloading"
             
             property Process downloadProc: Process {
@@ -221,30 +221,43 @@ PluginComponent {
     }
 
     horizontalBarPill: Component {
-        Row {
-            spacing: Theme.spacingS
+        Item {
+            implicitWidth: horizontalRow.implicitWidth
+            implicitHeight: Theme.iconSize
+            anchors.verticalCenter: parent.verticalCenter
+            
+            property bool draggingOver: false
 
-            DankIcon {
-                name: "download"
-                size: Theme.iconSizeSmall
-                color: root.activeDownloadsCount > 0 ? Theme.primary : Theme.surfaceText
-            }
+            Row {
+                id: horizontalRow
+                spacing: Theme.spacingXS
+                anchors.verticalCenter: parent.verticalCenter
+                scale: draggingOver ? 1.2 : 1.0
+                Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
 
-            StyledText {
-                text: root.activeDownloadsCount > 0 ? "Downloading (" + root.activeDownloadsCount + ")" : "Downloader"
-                font.pixelSize: Theme.fontSizeSmall
-                font.weight: Font.Medium
-                color: Theme.surfaceText
+                DankIcon {
+                    name: "download"
+                    size: Theme.iconSizeSmall
+                    color: draggingOver ? Theme.primary : (root.activeDownloadsCount > 0 ? Theme.primary : Theme.surfaceText)
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                StyledText {
+                    text: root.activeDownloadsCount
+                    visible: root.activeDownloadsCount > 0
+                    color: Theme.primary
+                    font.pixelSize: Theme.fontSizeSmall
+                    font.bold: true
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
 
             DropArea {
                 anchors.fill: parent
-                onEntered: (drag) => {
-                    if (drag.hasText || drag.hasUrls) {
-                        drag.acceptProposedAction();
-                    }
-                }
+                onEntered: draggingOver = true
+                onExited: draggingOver = false
                 onDropped: (drop) => {
+                    draggingOver = false;
                     var urlStr = "";
                     if (drop.hasUrls && drop.urls.length > 0) {
                         urlStr = String(drop.urls[0]);
@@ -262,33 +275,43 @@ PluginComponent {
     }
 
     verticalBarPill: Component {
-        Column {
-            spacing: Theme.spacingXS
+        Item {
+            implicitWidth: Theme.iconSize
+            implicitHeight: verticalCol.implicitHeight
             anchors.horizontalCenter: parent.horizontalCenter
+            
+            property bool draggingOver: false
 
-            DankIcon {
-                name: "download"
-                size: Theme.iconSizeSmall
-                color: root.activeDownloadsCount > 0 ? Theme.primary : Theme.surfaceText
+            Column {
+                id: verticalCol
+                spacing: 2
                 anchors.horizontalCenter: parent.horizontalCenter
-            }
+                scale: draggingOver ? 1.2 : 1.0
+                Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
 
-            StyledText {
-                text: root.activeDownloadsCount > 0 ? String(root.activeDownloadsCount) : "DL"
-                font.pixelSize: Theme.fontSizeSmall - 1
-                font.weight: Font.Medium
-                color: Theme.surfaceText
-                anchors.horizontalCenter: parent.horizontalCenter
+                DankIcon {
+                    name: "download"
+                    size: Theme.iconSizeSmall
+                    color: draggingOver ? Theme.primary : (root.activeDownloadsCount > 0 ? Theme.primary : Theme.surfaceText)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                StyledText {
+                    text: root.activeDownloadsCount
+                    visible: root.activeDownloadsCount > 0
+                    color: Theme.primary
+                    font.pixelSize: Theme.fontSizeSmall - 2
+                    font.bold: true
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
             }
 
             DropArea {
                 anchors.fill: parent
-                onEntered: (drag) => {
-                    if (drag.hasText || drag.hasUrls) {
-                        drag.acceptProposedAction();
-                    }
-                }
+                onEntered: draggingOver = true
+                onExited: draggingOver = false
                 onDropped: (drop) => {
+                    draggingOver = false;
                     var urlStr = "";
                     if (drop.hasUrls && drop.urls.length > 0) {
                         urlStr = String(drop.urls[0]);
