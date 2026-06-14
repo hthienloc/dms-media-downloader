@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.Common
@@ -366,7 +367,7 @@ PluginComponent {
         PopoutComponent {
             id: popoutComp
             headerText: "Media Downloader"
-            detailsText: "Paste a URL or drop a link to start"
+            detailsText: ""
 
             Column {
                 width: parent.width
@@ -522,17 +523,7 @@ PluginComponent {
                     }
                 }
 
-                // Placeholder when URL is empty
-                StyledText {
-                    text: "Copy a link and drop it onto the download pill on the bar, or paste it here to choose options."
-                    width: parent.width
-                    wrapMode: Text.WordWrap
-                    font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.surfaceVariantText
-                    horizontalAlignment: Text.AlignHCenter
-                    visible: root.activeUrl.length === 0
-                    height: 54
-                }
+
 
                 // Custom Configuration Subpanels
                 Column {
@@ -651,56 +642,48 @@ PluginComponent {
                             model: downloadsModel
                             delegate: Rectangle {
                                 width: parent.width
-                                height: 58
+                                height: 64
                                 color: Theme.surfaceContainerHigh
                                 radius: Theme.cornerRadius
                                 border.color: Theme.withAlpha(Theme.outline, 0.1)
+                                clip: true
 
                                 Column {
                                     anchors.fill: parent
-                                    anchors.topMargin: 6
-                                    anchors.bottomMargin: 6
-                                    anchors.leftMargin: Theme.spacingS
-                                    anchors.rightMargin: Theme.spacingS
+                                    anchors.topMargin: 8
+                                    anchors.bottomMargin: 8
+                                    anchors.leftMargin: Theme.spacingM
+                                    anchors.rightMargin: Theme.spacingM
                                     spacing: 4
 
-                                    Row {
+                                    Item {
                                         width: parent.width
+                                        height: Math.max(titleText.implicitHeight, progressText.implicitHeight)
+
                                         StyledText {
+                                            id: titleText
                                             text: model.title
-                                            width: parent.width - 80
+                                            anchors.left: parent.left
+                                            anchors.right: progressText.left
+                                            anchors.rightMargin: Theme.spacingM
+                                            anchors.verticalCenter: parent.verticalCenter
                                             elide: Text.ElideRight
                                             font.pixelSize: Theme.fontSizeSmall
                                             font.weight: Font.Medium
                                         }
                                         StyledText {
+                                            id: progressText
                                             text: model.status === "completed" ? "Done" : (model.status === "error" ? "Error" : (model.status === "cancelled" ? "Cancelled" : model.progress + "%"))
-                                            width: 80
-                                            horizontalAlignment: Text.AlignRight
+                                            anchors.right: parent.right
+                                            anchors.verticalCenter: parent.verticalCenter
                                             font.pixelSize: Theme.fontSizeSmall - 1
                                             color: model.status === "error" ? Theme.error : (model.status === "completed" ? Theme.success : Theme.primary)
                                         }
                                     }
 
-                                    // Dynamic Progress Bar
-                                    Rectangle {
-                                        width: parent.width
-                                        height: 6
-                                        color: Theme.withAlpha(Theme.surfaceText, 0.1)
-                                        radius: 3
-                                        clip: true
-
-                                        Rectangle {
-                                            width: parent.width * (model.progress / 100)
-                                            height: parent.height
-                                            color: model.status === "error" ? Theme.error : (model.status === "completed" ? Theme.success : Theme.primary)
-                                            radius: 3
-                                        }
-                                    }
-
                                     Item {
                                         width: parent.width
-                                        height: 16
+                                        height: 24
 
                                         StyledText {
                                             text: model.status === "downloading" ? model.speed + " - ETA " + model.eta : (model.status === "fetching" ? "Initializing..." : "")
@@ -717,18 +700,22 @@ PluginComponent {
                                             id: actionButtonsRow
                                             anchors.right: parent.right
                                             anchors.verticalCenter: parent.verticalCenter
-                                            spacing: 6
+                                            spacing: 4
 
                                             // Cancel Button
                                             Button {
-                                                width: 16
-                                                height: 16
+                                                width: 24; height: 24
                                                 visible: model.status === "downloading" || model.status === "fetching"
-                                                background: Item {}
+                                                flat: true
+                                                background: Rectangle {
+                                                    color: parent.hovered ? Theme.withAlpha(Theme.error, 0.1) : "transparent"
+                                                    radius: 12
+                                                }
                                                 contentItem: DankIcon {
                                                     name: "close"
-                                                    size: 14
+                                                    size: 16
                                                     color: Theme.error
+                                                    anchors.centerIn: parent
                                                 }
                                                 onClicked: {
                                                     downloadsModel.setProperty(index, "status", "cancelled");
@@ -737,14 +724,18 @@ PluginComponent {
 
                                             // Retry Button
                                             Button {
-                                                width: 16
-                                                height: 16
+                                                width: 24; height: 24
                                                 visible: model.status === "error" || model.status === "cancelled"
-                                                background: Item {}
+                                                flat: true
+                                                background: Rectangle {
+                                                    color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.1) : "transparent"
+                                                    radius: 12
+                                                }
                                                 contentItem: DankIcon {
                                                     name: "refresh"
-                                                    size: 14
+                                                    size: 16
                                                     color: Theme.primary
+                                                    anchors.centerIn: parent
                                                 }
                                                 onClicked: {
                                                     downloadsModel.setProperty(index, "status", "fetching");
@@ -756,16 +747,41 @@ PluginComponent {
                                                 }
                                             }
 
-                                            // Open File Button (Play Now)
+                                            // Play Music/Video Button
                                             Button {
-                                                width: 16
-                                                height: 16
+                                                width: 24; height: 24
                                                 visible: model.status === "completed"
-                                                background: Item {}
+                                                flat: true
+                                                background: Rectangle {
+                                                    color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.1) : "transparent"
+                                                    radius: 12
+                                                }
                                                 contentItem: DankIcon {
                                                     name: "play_arrow"
-                                                    size: 16
+                                                    size: 20
                                                     color: Theme.primary
+                                                    anchors.centerIn: parent
+                                                }
+                                                onClicked: {
+                                                    let p = model.fullPath || (root.downloadPath + "/" + model.title);
+                                                    Quickshell.execDetached(["xdg-open", p]);
+                                                }
+                                            }
+
+                                            // Open File Button
+                                            Button {
+                                                width: 24; height: 24
+                                                visible: model.status === "completed"
+                                                flat: true
+                                                background: Rectangle {
+                                                    color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.1) : "transparent"
+                                                    radius: 12
+                                                }
+                                                contentItem: DankIcon {
+                                                    name: "open_in_new"
+                                                    size: 18
+                                                    color: Theme.primary
+                                                    anchors.centerIn: parent
                                                 }
                                                 onClicked: {
                                                     let p = model.fullPath || (root.downloadPath + "/" + model.title);
@@ -775,14 +791,18 @@ PluginComponent {
 
                                             // Open Folder Button
                                             Button {
-                                                width: 16
-                                                height: 16
+                                                width: 24; height: 24
                                                 visible: model.status === "completed"
-                                                background: Item {}
+                                                flat: true
+                                                background: Rectangle {
+                                                    color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.1) : "transparent"
+                                                    radius: 12
+                                                }
                                                 contentItem: DankIcon {
                                                     name: "folder"
-                                                    size: 14
+                                                    size: 18
                                                     color: Theme.primary
+                                                    anchors.centerIn: parent
                                                 }
                                                 onClicked: {
                                                     let p = model.fullPath || (root.downloadPath + "/" + model.title);
@@ -791,6 +811,21 @@ PluginComponent {
                                                 }
                                             }
                                         }
+                                    }
+                                }
+
+                                // Dynamic Progress Bar (anchored to bottom of the card)
+                                Rectangle {
+                                    anchors.bottom: parent.bottom
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    height: 4
+                                    color: Theme.withAlpha(Theme.surfaceText, 0.1)
+
+                                    Rectangle {
+                                        width: parent.width * (model.progress / 100)
+                                        height: parent.height
+                                        color: model.status === "error" ? Theme.error : (model.status === "completed" ? Theme.success : Theme.primary)
                                     }
                                 }
 
@@ -813,34 +848,106 @@ PluginComponent {
     }
 
     property int activeHistoryIndex: -1
-    PluginMenu {
+    Popup {
         id: historyMenu
-        MenuItem {
-            text: I18n.tr("Play Now")
-            iconName: "play_arrow"
-            onTriggered: {
-                let item = downloadsModel.get(root.activeHistoryIndex);
-                let p = item.fullPath || (root.downloadPath + "/" + item.title);
-                Quickshell.execDetached(["xdg-open", p]);
-            }
+        width: 180
+        height: menuColumn.implicitHeight + Theme.spacingS * 2
+        padding: 0
+        background: Rectangle {
+            color: "transparent"
         }
-        MenuItem {
-            text: I18n.tr("Open Folder")
-            iconName: "folder"
-            onTriggered: {
-                let item = downloadsModel.get(root.activeHistoryIndex);
-                let p = item.fullPath || (root.downloadPath + "/" + item.title);
-                let dir = p.substring(0, p.lastIndexOf("/"));
-                Quickshell.execDetached(["xdg-open", dir]);
-            }
-        }
-        MenuSeparator {}
-        MenuItem {
-            text: I18n.tr("Remove from History")
-            iconName: "delete"
-            onTriggered: {
-                downloadsModel.remove(root.activeHistoryIndex);
-                root.updateActiveCount();
+
+        contentItem: StyledRect {
+            color: Theme.surfaceContainer
+            radius: Theme.cornerRadius
+            border.color: Theme.withAlpha(Theme.outline, 0.15)
+            border.width: 1
+
+            Column {
+                id: menuColumn
+                anchors.fill: parent
+                anchors.margins: Theme.spacingS
+                spacing: 2
+
+                Repeater {
+                    model: [
+                        {
+                            text: I18n.tr("Play Now"),
+                            icon: "play_arrow",
+                            action: function() {
+                                let item = downloadsModel.get(root.activeHistoryIndex);
+                                let p = item.fullPath || (root.downloadPath + "/" + item.title);
+                                Quickshell.execDetached(["xdg-open", p]);
+                            }
+                        },
+                        {
+                            text: I18n.tr("Open File"),
+                            icon: "open_in_new",
+                            action: function() {
+                                let item = downloadsModel.get(root.activeHistoryIndex);
+                                let p = item.fullPath || (root.downloadPath + "/" + item.title);
+                                Quickshell.execDetached(["xdg-open", p]);
+                            }
+                        },
+                        {
+                            text: I18n.tr("Open Folder"),
+                            icon: "folder",
+                            action: function() {
+                                let item = downloadsModel.get(root.activeHistoryIndex);
+                                let p = item.fullPath || (root.downloadPath + "/" + item.title);
+                                let dir = p.substring(0, p.lastIndexOf("/"));
+                                Quickshell.execDetached(["xdg-open", dir]);
+                            }
+                        },
+                        {
+                            text: I18n.tr("Remove from History"),
+                            icon: "delete",
+                            action: function() {
+                                downloadsModel.remove(root.activeHistoryIndex);
+                                root.updateActiveCount();
+                            }
+                        }
+                    ]
+
+                    delegate: MouseArea {
+                        width: parent.width
+                        height: 32
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: parent.containsMouse ? Theme.withAlpha(Theme.primary, 0.1) : "transparent"
+                            radius: Theme.cornerRadiusSmall
+                        }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.spacingS
+                            anchors.rightMargin: Theme.spacingS
+                            spacing: Theme.spacingS
+
+                            DankIcon {
+                                name: modelData.icon
+                                size: 16
+                                color: Theme.surfaceText
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            StyledText {
+                                text: modelData.text
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceText
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+
+                        onClicked: {
+                            modelData.action();
+                            historyMenu.close();
+                        }
+                    }
+                }
             }
         }
     }
