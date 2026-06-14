@@ -146,4 +146,27 @@ PluginSettings {
             enabled: limitToggle.value
         }
     }
+
+    SettingsCard {
+        SectionTitle {
+            id: usageTitle
+            text: "Usage Guide"
+            icon: "menu_book"
+            collapsible: true
+            settingKey: "usageGuideExpanded"
+        }
+
+        UsageGuide {
+            expanded: usageTitle.isExpanded
+            items: [
+                "<b>Left-click</b> the pill to open the downloader panel.",
+                "<b>Right-click</b> the pill to paste a URL from your clipboard and open the panel.",
+                "<b>Drag and drop</b> links directly onto the pill to paste and open the panel."
+            ]
+        }
+    }
+
+    PluginAbout {
+        repoUrl: "https://github.com/hthienloc/dms-media-downloader"
+    }
 }
