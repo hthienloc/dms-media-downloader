@@ -165,7 +165,14 @@ PluginComponent {
                         args.push(model.format);
                     }
 
-                    if (root.embedThumbnail) {
+                    var isSupportedFormatForThumbnail = false;
+                    if (model.type === "audio") {
+                        isSupportedFormatForThumbnail = (model.format === "mp3" || model.format === "opus" || model.format === "flac");
+                    } else {
+                        isSupportedFormatForThumbnail = (model.format === "mp4");
+                    }
+
+                    if (root.embedThumbnail && isSupportedFormatForThumbnail) {
                         args.push("--embed-thumbnail");
                         args.push("--convert-thumbnails");
                         args.push("jpg");
