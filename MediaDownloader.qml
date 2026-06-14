@@ -167,6 +167,8 @@ PluginComponent {
 
                     if (root.embedThumbnail) {
                         args.push("--embed-thumbnail");
+                        args.push("--convert-thumbnails");
+                        args.push("jpg");
                     }
                     if (root.embedMetadata) {
                         args.push("--embed-metadata");
