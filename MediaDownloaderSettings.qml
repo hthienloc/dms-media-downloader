@@ -22,7 +22,6 @@ PluginSettings {
         StringSettingPlus {
             settingKey: "downloadPathAudio"
             label: "Audio Download Folder"
-            description: "Directory where audio files will be saved."
             defaultValue: Quickshell.env("HOME") + "/Music"
             placeholder: "e.g. " + Quickshell.env("HOME") + "/Music"
             isDirectory: true
@@ -31,7 +30,6 @@ PluginSettings {
         StringSettingPlus {
             settingKey: "downloadPathVideo"
             label: "Video Download Folder"
-            description: "Directory where video files will be saved."
             defaultValue: Quickshell.env("HOME") + "/Videos"
             placeholder: "e.g. " + Quickshell.env("HOME") + "/Videos"
             isDirectory: true
@@ -47,7 +45,6 @@ PluginSettings {
         SelectionSettingPlus {
             settingKey: "quickVideoFormat"
             label: "Preferred Format"
-            description: "Format for Quick Video downloads."
             defaultValue: "mp4"
             options: [
                 { label: "MP4 (Compatible)", value: "mp4" },
@@ -58,7 +55,6 @@ PluginSettings {
         SelectionSettingPlus {
             settingKey: "quickVideoRes"
             label: "Max Resolution"
-            description: "Maximum resolution for Quick Video downloads."
             defaultValue: "1080p"
             options: [
                 { label: "Best Available Quality", value: "best" },
@@ -78,7 +74,6 @@ PluginSettings {
         SelectionSettingPlus {
             settingKey: "quickAudioFormat"
             label: "Preferred Audio Format"
-            description: "Format for Quick Audio downloads."
             defaultValue: "mp3"
             options: [
                 { label: "MP3 (Most Compatible)", value: "mp3" },
@@ -91,7 +86,6 @@ PluginSettings {
         SelectionSettingPlus {
             settingKey: "quickAudioQuality"
             label: "Audio Quality"
-            description: "Target bitrate or quality tier."
             defaultValue: "best"
             options: [
                 { label: "Best Available Quality", value: "best" },
@@ -118,7 +112,6 @@ PluginSettings {
         ToggleSettingPlus {
             settingKey: "embedThumbnail"
             label: "Embed Thumbnail"
-            description: "Embed video or audio thumbnail as cover art."
             defaultValue: true
         }
 
@@ -132,7 +125,6 @@ PluginSettings {
         ToggleSettingPlus {
             settingKey: "embedSubs"
             label: "Embed Subtitles"
-            description: "Download and embed subtitles into video files."
             defaultValue: false
         }
 
@@ -147,7 +139,6 @@ PluginSettings {
         SliderSettingPlus {
             settingKey: "maxRate"
             label: "Max Speed Limit"
-            description: "Speed limit when throttling is enabled."
             defaultValue: 5000
             minimum: 500
             maximum: 50000
