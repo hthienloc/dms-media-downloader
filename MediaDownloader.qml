@@ -60,6 +60,13 @@ PluginComponent {
     property string customFormat: ""
     property string customQuality: ""
 
+    // Preview state variables
+    property string previewTitle: ""
+    property string previewAuthor: ""
+    property string previewThumbnail: ""
+    property bool fetchingPreview: false
+    property string previewUrl: ""
+
     // ListModel for tracking downloads
     ListModel {
         id: downloadsModel
@@ -198,6 +205,82 @@ PluginComponent {
         });
     }
 
+    onActiveUrlChanged: {
+        previewDebounceTimer.restart();
+        if (activeUrl === "") {
+            previewDebounceTimer.stop();
+            root.previewTitle = "";
+            root.previewAuthor = "";
+            root.previewThumbnail = "";
+            root.previewUrl = "";
+            root.fetchingPreview = false;
+        }
+    }
+
+    Timer {
+        id: previewDebounceTimer
+        interval: 800
+        running: false
+        repeat: false
+        onTriggered: {
+            root.fetchPreview(root.activeUrl);
+        }
+    }
+
+    function fetchPreview(url) {
+        if (url === "") {
+            root.previewTitle = "";
+            root.previewAuthor = "";
+            root.previewThumbnail = "";
+            root.previewUrl = "";
+            root.fetchingPreview = false;
+            return;
+        }
+        
+        var trimmed = url.trim();
+        if (!(trimmed.indexOf("http://") === 0 || trimmed.indexOf("https://") === 0 || trimmed.indexOf("www.") === 0)) {
+            root.previewTitle = "";
+            root.previewAuthor = "";
+            root.previewThumbnail = "";
+            root.previewUrl = "";
+            root.fetchingPreview = false;
+            return;
+        }
+
+        if (trimmed === root.previewUrl) {
+            return;
+        }
+
+        root.previewUrl = trimmed;
+        root.fetchingPreview = true;
+        root.previewTitle = "Loading preview...";
+        root.previewAuthor = "";
+        root.previewThumbnail = "";
+
+        var cmd = ["yt-dlp", "--ignore-config", "--print", "%(title)s|%(uploader)s|%(thumbnail)s", "--skip-download", trimmed];
+        Proc.runCommand("mediaDownloader.getPreview_" + Date.now(), cmd, (stdout, exitCode) => {
+            // Check if activeUrl hasn't changed since we started fetching
+            if (root.activeUrl.trim() !== trimmed) {
+                return;
+            }
+            root.fetchingPreview = false;
+            if (exitCode === 0 && stdout.trim().length > 0) {
+                var lines = stdout.trim().split("\n");
+                var lastLine = lines[lines.length - 1]; // in case of warnings/other output
+                var parts = lastLine.split("|");
+                if (parts.length >= 2) {
+                    root.previewTitle = parts[0].trim();
+                    root.previewAuthor = parts[1].trim();
+                    root.previewThumbnail = parts.length >= 3 ? parts[2].trim() : "";
+                    return;
+                }
+            }
+            root.previewTitle = "";
+            root.previewAuthor = "";
+            root.previewThumbnail = "";
+        });
+    }
+
     // Instantiator for active download processes
     Instantiator {
         model: downloadsModel
@@ -238,9 +321,7 @@ PluginComponent {
                     }
 
                     if (root.embedThumbnail) {
-                        args.push("--write-thumbnail");
-                        args.push("--convert-thumbnails");
-                        args.push("jpg");
+                        args.push("--embed-thumbnail");
                     }
                     if (root.embedMetadata) {
                         args.push("--embed-metadata");
@@ -326,41 +407,6 @@ PluginComponent {
                 onExited: (exitCode) => {
                     running = false;
                     if (exitCode === 0) {
-                        let item = downloadsModel.get(index);
-                        let audioPath = item.fullPath || (root.downloadPath + "/" + item.title);
-                        let lastDot = audioPath.lastIndexOf(".");
-                        
-                        if (root.embedThumbnail && lastDot !== -1) {
-                            let basePath = audioPath.substring(0, lastDot);
-                            let ext = audioPath.substring(lastDot + 1).toLowerCase();
-                            let tempPath = basePath + ".temp." + ext;
-                            let thumbPathJpg = basePath + ".jpg";
-                            let thumbPathPng = basePath + ".png";
-                            let thumbPathWebp = basePath + ".webp";
-                            
-                            let cmd = "";
-                            if (ext === "mp3") {
-                                cmd = `if [ -f "${thumbPathJpg}" ]; then thumb="${thumbPathJpg}"; elif [ -f "${thumbPathPng}" ]; then thumb="${thumbPathPng}"; elif [ -f "${thumbPathWebp}" ]; then thumb="${thumbPathWebp}"; else thumb=""; fi; if [ -n "$thumb" ]; then ffmpeg -y -i "${audioPath}" -i "$thumb" -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (front)" "${tempPath}" && mv "${tempPath}" "${audioPath}" && rm -f "$thumb"; fi`;
-                            } else if (ext === "mp4") {
-                                cmd = `if [ -f "${thumbPathJpg}" ]; then thumb="${thumbPathJpg}"; elif [ -f "${thumbPathPng}" ]; then thumb="${thumbPathPng}"; elif [ -f "${thumbPathWebp}" ]; then thumb="${thumbPathWebp}"; else thumb=""; fi; if [ -n "$thumb" ]; then ffmpeg -y -i "${audioPath}" -i "$thumb" -map 0 -map 1 -c copy -disposition:v:1 attached_pic "${tempPath}" && mv "${tempPath}" "${audioPath}" && rm -f "$thumb"; fi`;
-                            } else if (ext === "opus" || ext === "flac" || ext === "ogg") {
-                                cmd = `if [ -f "${thumbPathJpg}" ]; then thumb="${thumbPathJpg}"; elif [ -f "${thumbPathPng}" ]; then thumb="${thumbPathPng}"; elif [ -f "${thumbPathWebp}" ]; then thumb="${thumbPathWebp}"; else thumb=""; fi; if [ -n "$thumb" ]; then ffmpeg -y -i "${audioPath}" -i "$thumb" -map 0 -map 1 -c copy "${tempPath}" && mv "${tempPath}" "${audioPath}" && rm -f "$thumb"; fi`;
-                            }
-                            
-                            if (cmd !== "") {
-                                downloadsModel.setProperty(index, "status", "embedding");
-                                Proc.runCommand("mediaDownloader.embedThumbnail_" + index, ["sh", "-c", cmd], (stdout, embedExitCode) => {
-                                    downloadsModel.setProperty(index, "status", "completed");
-                                    downloadsModel.setProperty(index, "progress", 100);
-                                    if (typeof ToastService !== "undefined" && ToastService) {
-                                        ToastService.showSuccess("Download Completed", downloadsModel.get(index).title || "File downloaded successfully");
-                                    }
-                                    root.updateActiveCount();
-                                });
-                                return;
-                            }
-                        }
-                        
                         downloadsModel.setProperty(index, "status", "completed");
                         downloadsModel.setProperty(index, "progress", 100);
                         if (typeof ToastService !== "undefined" && ToastService) {
@@ -508,7 +554,7 @@ PluginComponent {
 
     // Popout Dialog Layout
     popoutWidth: 440
-    popoutHeight: 560
+    popoutHeight: 600
 
     popoutContent: Component {
         PopoutComponent {
@@ -530,6 +576,81 @@ PluginComponent {
                         root.activeUrl = text;
                         if (text.length === 0) {
                             root.customMode = "";
+                        }
+                    }
+                }
+
+                // URL Preview Card
+                Rectangle {
+                    width: parent.width
+                    height: 80
+                    visible: root.activeUrl.length > 0 && (root.previewTitle !== "" || root.fetchingPreview)
+                    color: Theme.surfaceContainerHigh
+                    radius: Theme.cornerRadius
+                    border.color: Theme.withAlpha(Theme.outline, 0.1)
+                    clip: true
+
+                    Row {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: Theme.spacingM
+
+                        // Thumbnail
+                        Rectangle {
+                            width: 106
+                            height: 64
+                            radius: Theme.cornerRadiusSmall
+                            color: Theme.surfaceContainerLowest
+                            clip: true
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Image {
+                                anchors.fill: parent
+                                source: root.previewThumbnail
+                                fillMode: Image.PreserveAspectCrop
+                                visible: root.previewThumbnail !== ""
+                            }
+
+                            BusyIndicator {
+                                anchors.centerIn: parent
+                                running: root.fetchingPreview
+                                visible: root.fetchingPreview
+                            }
+
+                            DankIcon {
+                                anchors.centerIn: parent
+                                name: "music_video"
+                                size: 24
+                                color: Theme.surfaceVariantText
+                                visible: !root.fetchingPreview && root.previewThumbnail === ""
+                            }
+                        }
+
+                        // Details
+                        Column {
+                            width: parent.width - 122
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 4
+
+                            StyledText {
+                                text: root.previewTitle
+                                font.weight: Font.Bold
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceText
+                                elide: Text.ElideRight
+                                width: parent.width
+                                maximumLineCount: 1
+                            }
+
+                            StyledText {
+                                text: root.previewAuthor
+                                font.pixelSize: Theme.fontSizeSmall - 2
+                                color: Theme.surfaceVariantText
+                                elide: Text.ElideRight
+                                width: parent.width
+                                maximumLineCount: 1
+                                visible: root.previewAuthor !== ""
+                            }
                         }
                     }
                 }
@@ -698,7 +819,19 @@ PluginComponent {
 
                 ScrollView {
                     width: parent.width
-                    height: root.customMode !== "" ? 180 : 260
+                    height: {
+                        var h = 300;
+                        if (root.activeUrl !== "") {
+                            h -= 120; // portion of grid/spacing
+                            if (root.previewTitle !== "" || root.fetchingPreview) {
+                                h -= 96;
+                            }
+                            if (root.customMode !== "") {
+                                h -= 80;
+                            }
+                        }
+                        return Math.max(100, h);
+                    }
                     clip: true
 
                     Column {
