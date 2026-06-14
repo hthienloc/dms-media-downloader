@@ -43,6 +43,7 @@ PluginComponent {
     // State variables
     property string activeUrl: ""
     property int activeDownloadsCount: 0
+    property bool hasHistoryItems: false
     property string customMode: "" // "", "video", "audio"
 
     // Custom configuration states
@@ -56,14 +57,18 @@ PluginComponent {
 
     // Update active count whenever model changes
     function updateActiveCount() {
-        var count = 0;
+        var activeCount = 0;
+        var historyCount = 0;
         for (var i = 0; i < downloadsModel.count; i++) {
             var s = downloadsModel.get(i).status;
             if (s === "fetching" || s === "downloading") {
-                count++;
+                activeCount++;
+            } else if (s === "completed" || s === "cancelled" || s === "error") {
+                historyCount++;
             }
         }
-        root.activeDownloadsCount = count;
+        root.activeDownloadsCount = activeCount;
+        root.hasHistoryItems = historyCount > 0;
     }
 
     // Helper functions for formatting bytes and speed
@@ -598,19 +603,21 @@ PluginComponent {
                         anchors.verticalCenter: parent.verticalCenter
                         height: 20
                         flat: true
+                        enabled: root.hasHistoryItems
                         background: Item {}
                         contentItem: Row {
                             spacing: 4
+                            opacity: root.hasHistoryItems ? 1.0 : 0.4
                             DankIcon {
                                 name: "delete_sweep"
                                 size: 14
-                                color: Theme.error
+                                color: root.hasHistoryItems ? Theme.error : Theme.surfaceText
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             StyledText {
                                 text: "Clear History"
                                 font.pixelSize: Theme.fontSizeSmall - 2
-                                color: Theme.error
+                                color: root.hasHistoryItems ? Theme.error : Theme.surfaceText
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }
@@ -639,14 +646,17 @@ PluginComponent {
                             model: downloadsModel
                             delegate: Rectangle {
                                 width: parent.width
-                                height: 50
+                                height: 58
                                 color: Theme.surfaceContainerHigh
                                 radius: Theme.cornerRadius
                                 border.color: Theme.withAlpha(Theme.outline, 0.1)
 
                                 Column {
                                     anchors.fill: parent
-                                    anchors.margins: Theme.spacingS
+                                    anchors.topMargin: 6
+                                    anchors.bottomMargin: 6
+                                    anchors.leftMargin: Theme.spacingS
+                                    anchors.rightMargin: Theme.spacingS
                                     spacing: 4
 
                                     Row {
@@ -683,64 +693,69 @@ PluginComponent {
                                         }
                                     }
 
-                                    Row {
+                                    Item {
                                         width: parent.width
+                                        height: 16
+
                                         StyledText {
                                             text: model.status === "downloading" ? model.speed + " - ETA " + model.eta : (model.status === "fetching" ? "Initializing..." : "")
                                             font.pixelSize: Theme.fontSizeSmall - 2
                                             color: Theme.surfaceVariantText
-                                            width: parent.width - (model.status === "completed" ? 44 : 24)
-                                        }
-                                        
-                                        // Cancel Button
-                                        Button {
-                                            width: 16
-                                            height: 16
-                                            visible: model.status === "downloading" || model.status === "fetching"
+                                            anchors.left: parent.left
+                                            anchors.right: actionButtonsRow.left
+                                            anchors.rightMargin: Theme.spacingS
+                                            elide: Text.ElideRight
                                             anchors.verticalCenter: parent.verticalCenter
-                                            background: Item {}
-                                            contentItem: DankIcon {
-                                                name: "close"
-                                                size: 14
-                                                color: Theme.error
-                                            }
-                                            onClicked: {
-                                                downloadsModel.setProperty(index, "status", "cancelled");
-                                            }
                                         }
 
-                                        // Retry Button
-                                        Button {
-                                            width: 16
-                                            height: 16
-                                            visible: model.status === "error" || model.status === "cancelled"
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            background: Item {}
-                                            contentItem: DankIcon {
-                                                name: "refresh"
-                                                size: 14
-                                                color: Theme.primary
-                                            }
-                                            onClicked: {
-                                                downloadsModel.setProperty(index, "status", "fetching");
-                                                downloadsModel.setProperty(index, "progress", 0);
-                                                downloadsModel.setProperty(index, "speed", "0 B/s");
-                                                downloadsModel.setProperty(index, "eta", "--:--");
-                                                root.startDownload(model.url, model.type, model.format, model.quality);
-                                                downloadsModel.remove(index);
-                                            }
-                                        }
-
-                                        // Open Actions Row
                                         Row {
-                                            spacing: 6
-                                            visible: model.status === "completed"
+                                            id: actionButtonsRow
+                                            anchors.right: parent.right
                                             anchors.verticalCenter: parent.verticalCenter
+                                            spacing: 6
+
+                                            // Cancel Button
+                                            Button {
+                                                width: 16
+                                                height: 16
+                                                visible: model.status === "downloading" || model.status === "fetching"
+                                                background: Item {}
+                                                contentItem: DankIcon {
+                                                    name: "close"
+                                                    size: 14
+                                                    color: Theme.error
+                                                }
+                                                onClicked: {
+                                                    downloadsModel.setProperty(index, "status", "cancelled");
+                                                }
+                                            }
+
+                                            // Retry Button
+                                            Button {
+                                                width: 16
+                                                height: 16
+                                                visible: model.status === "error" || model.status === "cancelled"
+                                                background: Item {}
+                                                contentItem: DankIcon {
+                                                    name: "refresh"
+                                                    size: 14
+                                                    color: Theme.primary
+                                                }
+                                                onClicked: {
+                                                    downloadsModel.setProperty(index, "status", "fetching");
+                                                    downloadsModel.setProperty(index, "progress", 0);
+                                                    downloadsModel.setProperty(index, "speed", "0 B/s");
+                                                    downloadsModel.setProperty(index, "eta", "--:--");
+                                                    root.startDownload(model.url, model.type, model.format, model.quality);
+                                                    downloadsModel.remove(index);
+                                                }
+                                            }
 
                                             // Open File Button
                                             Button {
                                                 width: 16
                                                 height: 16
+                                                visible: model.status === "completed"
                                                 background: Item {}
                                                 contentItem: DankIcon {
                                                     name: "open_in_new"
@@ -756,6 +771,7 @@ PluginComponent {
                                             Button {
                                                 width: 16
                                                 height: 16
+                                                visible: model.status === "completed"
                                                 background: Item {}
                                                 contentItem: DankIcon {
                                                     name: "folder"
