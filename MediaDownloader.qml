@@ -494,30 +494,13 @@ PluginComponent {
                     visible: root.activeUrl.length > 0
 
                     // Option 1: Quick Video
-                    Button {
+                    ActionTile {
                         width: (parent.width - Theme.spacingM) / 2
-                        height: 54
-                        background: Rectangle {
-                            color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.15) : Theme.surfaceContainerHigh
-                            border.color: parent.hovered ? Theme.primary : Theme.withAlpha(Theme.outline, 0.2)
-                            radius: Theme.cornerRadius
-                        }
-                        contentItem: Column {
-                            spacing: 2
-                            anchors.centerIn: parent
-                            Row {
-                                spacing: 4
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                DankIcon { name: "videocam"; size: 16; color: Theme.primary }
-                                StyledText { text: "Quick Video"; font.weight: Font.Bold; font.pixelSize: Theme.fontSizeSmall }
-                            }
-                            StyledText { 
-                                text: root.quickVideoRes + " (" + root.quickVideoFormat.toUpperCase() + ")"
-                                font.pixelSize: Theme.fontSizeSmall - 2
-                                color: Theme.surfaceVariantText
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-                        }
+                        height: 64
+                        iconName: "videocam"
+                        title: "Quick Video"
+                        titleFontSize: Theme.fontSizeSmall
+                        subtitle: root.quickVideoRes + " (" + root.quickVideoFormat.toUpperCase() + ")"
                         onClicked: {
                             root.startDownload(root.activeUrl, "video", root.quickVideoFormat, root.quickVideoRes);
                             root.activeUrl = "";
@@ -526,30 +509,13 @@ PluginComponent {
                     }
 
                     // Option 2: Quick Audio
-                    Button {
+                    ActionTile {
                         width: (parent.width - Theme.spacingM) / 2
-                        height: 54
-                        background: Rectangle {
-                            color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.15) : Theme.surfaceContainerHigh
-                            border.color: parent.hovered ? Theme.primary : Theme.withAlpha(Theme.outline, 0.2)
-                            radius: Theme.cornerRadius
-                        }
-                        contentItem: Column {
-                            spacing: 2
-                            anchors.centerIn: parent
-                            Row {
-                                spacing: 4
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                DankIcon { name: "audiotrack"; size: 16; color: Theme.primary }
-                                StyledText { text: "Quick Audio"; font.weight: Font.Bold; font.pixelSize: Theme.fontSizeSmall }
-                            }
-                            StyledText { 
-                                text: root.quickAudioFormat.toUpperCase() + " (" + root.quickAudioQuality + ")"
-                                font.pixelSize: Theme.fontSizeSmall - 2
-                                color: Theme.surfaceVariantText
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-                        }
+                        height: 64
+                        iconName: "audiotrack"
+                        title: "Quick Audio"
+                        titleFontSize: Theme.fontSizeSmall
+                        subtitle: root.quickAudioFormat.toUpperCase() + " (" + root.quickAudioQuality + ")"
                         onClicked: {
                             root.startDownload(root.activeUrl, "audio", root.quickAudioFormat, root.quickAudioQuality);
                             root.activeUrl = "";
@@ -558,30 +524,14 @@ PluginComponent {
                     }
 
                     // Option 3: Custom Video Options
-                    Button {
+                    ActionTile {
                         width: (parent.width - Theme.spacingM) / 2
-                        height: 54
-                        background: Rectangle {
-                            color: root.customMode === "video" ? Theme.withAlpha(Theme.primary, 0.2) : (parent.hovered ? Theme.withAlpha(Theme.primary, 0.15) : Theme.surfaceContainerHigh)
-                            border.color: root.customMode === "video" || parent.hovered ? Theme.primary : Theme.withAlpha(Theme.outline, 0.2)
-                            radius: Theme.cornerRadius
-                        }
-                        contentItem: Column {
-                            spacing: 2
-                            anchors.centerIn: parent
-                            Row {
-                                spacing: 4
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                DankIcon { name: "settings"; size: 16; color: Theme.primary }
-                                StyledText { text: "Custom Video"; font.weight: Font.Bold; font.pixelSize: Theme.fontSizeSmall }
-                            }
-                            StyledText { 
-                                text: "Select quality & format"
-                                font.pixelSize: Theme.fontSizeSmall - 2
-                                color: Theme.surfaceVariantText
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-                        }
+                        height: 64
+                        iconName: "settings"
+                        title: "Custom Video"
+                        titleFontSize: Theme.fontSizeSmall
+                        subtitle: "Select quality & format"
+                        active: root.customMode === "video"
                         onClicked: {
                             root.customMode = "video";
                             root.customFormat = "mp4";
@@ -590,30 +540,14 @@ PluginComponent {
                     }
 
                     // Option 4: Custom Audio Options
-                    Button {
+                    ActionTile {
                         width: (parent.width - Theme.spacingM) / 2
-                        height: 54
-                        background: Rectangle {
-                            color: root.customMode === "audio" ? Theme.withAlpha(Theme.primary, 0.2) : (parent.hovered ? Theme.withAlpha(Theme.primary, 0.15) : Theme.surfaceContainerHigh)
-                            border.color: root.customMode === "audio" || parent.hovered ? Theme.primary : Theme.withAlpha(Theme.outline, 0.2)
-                            radius: Theme.cornerRadius
-                        }
-                        contentItem: Column {
-                            spacing: 2
-                            anchors.centerIn: parent
-                            Row {
-                                spacing: 4
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                DankIcon { name: "settings"; size: 16; color: Theme.primary }
-                                StyledText { text: "Custom Audio"; font.weight: Font.Bold; font.pixelSize: Theme.fontSizeSmall }
-                            }
-                            StyledText { 
-                                text: "Select format & bitrate"
-                                font.pixelSize: Theme.fontSizeSmall - 2
-                                color: Theme.surfaceVariantText
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-                        }
+                        height: 64
+                        iconName: "settings"
+                        title: "Custom Audio"
+                        titleFontSize: Theme.fontSizeSmall
+                        subtitle: "Select format & bitrate"
+                        active: root.customMode === "audio"
                         onClicked: {
                             root.customMode = "audio";
                             root.customFormat = "mp3";
@@ -661,14 +595,12 @@ PluginComponent {
                         }
                     }
 
-                    Button {
+                    DankButton {
                         width: parent.width
-                        height: 36
+                        buttonHeight: 36
                         text: "Start Custom Download"
-                        background: Rectangle {
-                            color: parent.hovered ? Theme.primary : Theme.withAlpha(Theme.primary, 0.8)
-                            radius: Theme.cornerRadius
-                        }
+                        backgroundColor: Theme.primary
+                        textColor: Theme.onPrimary
                         onClicked: {
                             root.startDownload(root.activeUrl, root.customMode, root.customFormat, root.customQuality);
                             root.activeUrl = "";
@@ -693,29 +625,17 @@ PluginComponent {
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
-                    Button {
+                    DankButton {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        height: 20
-                        flat: true
+                        buttonHeight: 24
+                        horizontalPadding: Theme.spacingS
                         enabled: root.hasHistoryItems
-                        background: Item {}
-                        contentItem: Row {
-                            spacing: 4
-                            opacity: root.hasHistoryItems ? 1.0 : 0.4
-                            DankIcon {
-                                name: "delete_sweep"
-                                size: 14
-                                color: root.hasHistoryItems ? Theme.error : Theme.surfaceText
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                            StyledText {
-                                text: "Clear History"
-                                font.pixelSize: Theme.fontSizeSmall - 2
-                                color: root.hasHistoryItems ? Theme.error : Theme.surfaceText
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                        }
+                        backgroundColor: "transparent"
+                        textColor: root.hasHistoryItems ? Theme.error : Theme.surfaceVariantText
+                        iconName: "delete_sweep"
+                        iconSize: 14
+                        text: "Clear History"
                         onClicked: {
                             for (var i = downloadsModel.count - 1; i >= 0; i--) {
                                 var s = downloadsModel.get(i).status;
@@ -741,7 +661,7 @@ PluginComponent {
                             model: downloadsModel
                             delegate: Rectangle {
                                 width: parent.width
-                                height: 64
+                                height: 72
                                 color: Theme.surfaceContainerHigh
                                 radius: Theme.cornerRadius
                                 border.color: Theme.withAlpha(Theme.outline, 0.1)
@@ -782,7 +702,7 @@ PluginComponent {
 
                                     Item {
                                         width: parent.width
-                                        height: 24
+                                        height: 32
 
                                         StyledText {
                                             text: model.status === "downloading" ? model.speed + " - ETA " + model.eta : (model.status === "fetching" ? "Initializing..." : "")
@@ -802,40 +722,22 @@ PluginComponent {
                                             spacing: 4
 
                                             // Cancel Button
-                                            Button {
-                                                width: 24; height: 24
+                                            DankActionButton {
                                                 visible: model.status === "downloading" || model.status === "fetching"
-                                                flat: true
-                                                background: Rectangle {
-                                                    color: parent.hovered ? Theme.withAlpha(Theme.error, 0.1) : "transparent"
-                                                    radius: 12
-                                                }
-                                                contentItem: DankIcon {
-                                                    name: "close"
-                                                    size: 16
-                                                    color: Theme.error
-                                                    anchors.centerIn: parent
-                                                }
+                                                iconName: "close"
+                                                iconColor: Theme.error
+                                                tooltipText: I18n.tr("Cancel")
                                                 onClicked: {
                                                     downloadsModel.setProperty(index, "status", "cancelled");
                                                 }
                                             }
 
                                             // Retry Button
-                                            Button {
-                                                width: 24; height: 24
+                                            DankActionButton {
                                                 visible: model.status === "error" || model.status === "cancelled"
-                                                flat: true
-                                                background: Rectangle {
-                                                    color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.1) : "transparent"
-                                                    radius: 12
-                                                }
-                                                contentItem: DankIcon {
-                                                    name: "refresh"
-                                                    size: 16
-                                                    color: Theme.primary
-                                                    anchors.centerIn: parent
-                                                }
+                                                iconName: "refresh"
+                                                iconColor: Theme.primary
+                                                tooltipText: I18n.tr("Retry")
                                                 onClicked: {
                                                     downloadsModel.setProperty(index, "status", "fetching");
                                                     downloadsModel.setProperty(index, "progress", 0);
@@ -847,20 +749,11 @@ PluginComponent {
                                             }
 
                                             // Play Music/Video Button
-                                            Button {
-                                                width: 24; height: 24
+                                            DankActionButton {
                                                 visible: model.status === "completed"
-                                                flat: true
-                                                background: Rectangle {
-                                                    color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.1) : "transparent"
-                                                    radius: 12
-                                                }
-                                                contentItem: DankIcon {
-                                                    name: "play_arrow"
-                                                    size: 20
-                                                    color: Theme.primary
-                                                    anchors.centerIn: parent
-                                                }
+                                                iconName: "play_arrow"
+                                                iconColor: Theme.primary
+                                                tooltipText: I18n.tr("Play")
                                                 onClicked: {
                                                     let p = model.fullPath || (root.downloadPath + "/" + model.title);
                                                     Quickshell.execDetached(["xdg-open", p]);
@@ -868,20 +761,11 @@ PluginComponent {
                                             }
 
                                             // Open File Button
-                                            Button {
-                                                width: 24; height: 24
+                                            DankActionButton {
                                                 visible: model.status === "completed"
-                                                flat: true
-                                                background: Rectangle {
-                                                    color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.1) : "transparent"
-                                                    radius: 12
-                                                }
-                                                contentItem: DankIcon {
-                                                    name: "open_in_new"
-                                                    size: 18
-                                                    color: Theme.primary
-                                                    anchors.centerIn: parent
-                                                }
+                                                iconName: "open_in_new"
+                                                iconColor: Theme.primary
+                                                tooltipText: I18n.tr("Open File")
                                                 onClicked: {
                                                     let p = model.fullPath || (root.downloadPath + "/" + model.title);
                                                     Quickshell.execDetached(["xdg-open", p]);
@@ -889,20 +773,11 @@ PluginComponent {
                                             }
 
                                             // Open Folder Button
-                                            Button {
-                                                width: 24; height: 24
+                                            DankActionButton {
                                                 visible: model.status === "completed"
-                                                flat: true
-                                                background: Rectangle {
-                                                    color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.1) : "transparent"
-                                                    radius: 12
-                                                }
-                                                contentItem: DankIcon {
-                                                    name: "folder"
-                                                    size: 18
-                                                    color: Theme.primary
-                                                    anchors.centerIn: parent
-                                                }
+                                                iconName: "folder"
+                                                iconColor: Theme.primary
+                                                tooltipText: I18n.tr("Open Folder")
                                                 onClicked: {
                                                     let p = model.fullPath || (root.downloadPath + "/" + model.title);
                                                     let dir = p.substring(0, p.lastIndexOf("/"));
@@ -966,24 +841,14 @@ PluginComponent {
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
-                    Button {
+                    DankButton {
                         text: "Update"
                         visible: root.ytdlpOutdated && !root.updatingYtdlp
-                        height: 20
-                        flat: true
+                        buttonHeight: 20
+                        horizontalPadding: Theme.spacingS
+                        backgroundColor: Theme.withAlpha(Theme.primary, 0.1)
+                        textColor: Theme.primary
                         anchors.verticalCenter: parent.verticalCenter
-                        background: Rectangle {
-                            color: parent.hovered ? Theme.withAlpha(Theme.primary, 0.15) : Theme.withAlpha(Theme.primary, 0.05)
-                            radius: Theme.cornerRadiusSmall
-                        }
-                        contentItem: StyledText {
-                            text: "Update"
-                            font.pixelSize: Theme.fontSizeSmall - 2
-                            font.weight: Font.Bold
-                            color: Theme.primary
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
                         onClicked: {
                             root.updateYtdlp();
                         }
