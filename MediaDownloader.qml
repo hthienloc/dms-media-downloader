@@ -146,6 +146,7 @@ PluginComponent {
                         args.push("-x");
                         args.push("--audio-format");
                         args.push(model.format);
+                        args.push("--embed-thumbnail");
                         if (model.quality !== "best") {
                             args.push("--audio-quality");
                             args.push(model.quality);
