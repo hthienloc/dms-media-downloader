@@ -10,10 +10,7 @@ PluginSettings {
 
     pluginId: "mediaDownloader"
 
-    PluginHeader {
-        title: "Media Downloader Settings"
-        description: "Configure your download location, quality presets, and yt-dlp parameters."
-    }
+
 
     SettingsCard {
         SectionTitle {
