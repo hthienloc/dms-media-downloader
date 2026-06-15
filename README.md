@@ -23,6 +23,7 @@ git clone https://github.com/hthienloc/dms-media-downloader ~/.config/DankMateri
 - **Pill Integration:** Monitor active downloads directly from the DankBar.
 - **Drag & Drop:** Drag links onto the bar icon to start downloading instantly.
 - **SponsorBlock:** Automatically remove sponsor segments from YouTube videos.
+- **Thumbnail Cropping:** Option to crop embedded thumbnails to a 1:1 square ratio.
 
 ## Usage
 
@@ -40,13 +41,13 @@ git clone https://github.com/hthienloc/dms-media-downloader ~/.config/DankMateri
 ## Roadmap / TODO
 
 ### Phase 1: History & Management
-- [ ] **History Actions:** Right-click completed items to "Open Folder" or "Play".
-- [ ] **Batch Clear:** One-click to remove all completed or failed items from history.
+- [x] **History Actions:** Right-click completed items to "Open Folder" or "Play".
+- [x] **Batch Clear:** One-click to remove all completed or failed items from history.
 - [ ] **Drag-out Support:** Drag completed files from history into other apps.
 
 ### Phase 2: Metadata & Polish
-- [ ] **Native Info Preview:** Show thumbnail and video duration after pasting a link.
-- [ ] **Metadata Tagging:** Automatically embed thumbnails and tags into audio files.
+- [x] **Native Info Preview:** Show thumbnail and video duration after pasting a link.
+- [x] **Metadata Tagging:** Automatically embed thumbnails and tags into audio files.
 - [ ] **Playlist Support:** Select specific tracks when a playlist link is detected.
 
 ### Phase 3: Advanced Features

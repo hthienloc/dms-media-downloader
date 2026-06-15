@@ -42,6 +42,7 @@ PluginComponent {
     readonly property bool limitRate: pluginData.limitRate ?? false
     readonly property int maxRate: pluginData.maxRate ?? 5000
     readonly property bool embedThumbnail: pluginData.embedThumbnail ?? true
+    readonly property bool cropThumbnail: pluginData.cropThumbnail ?? false
     readonly property bool embedMetadata: pluginData.embedMetadata ?? true
     readonly property bool embedSubs: pluginData.embedSubs ?? false
 
@@ -325,6 +326,12 @@ PluginComponent {
 
                     if (root.embedThumbnail) {
                         args.push("--embed-thumbnail");
+                        if (root.cropThumbnail) {
+                            args.push("--convert-thumbnails");
+                            args.push("jpg");
+                            args.push("--ppa");
+                            args.push("EmbedThumbnail+ffmpeg_o:-c:v mjpeg -vf crop=\"'if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'\"");
+                        }
                     }
                     if (root.embedMetadata) {
                         args.push("--embed-metadata");

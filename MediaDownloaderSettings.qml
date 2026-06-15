@@ -116,6 +116,14 @@ PluginSettings {
         }
 
         ToggleSettingPlus {
+            settingKey: "cropThumbnail"
+            label: "Crop Thumbnail (1:1)"
+            description: "Crop the thumbnail to a perfect square before embedding."
+            defaultValue: false
+            enabled: pluginData.embedThumbnail ?? true
+        }
+
+        ToggleSettingPlus {
             settingKey: "embedMetadata"
             label: "Embed Metadata"
             description: "Write metadata tags (title, artist, etc.) to the output file."
