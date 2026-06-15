@@ -740,29 +740,33 @@ PluginComponent {
                         width: parent.width
                         spacing: Theme.spacingM
 
-                        // Format Combo
+                        // Format Dropdown
                         Column {
                             width: (parent.width - Theme.spacingM) / 2
-                            spacing: 2
-                            StyledText { text: "Format"; font.pixelSize: Theme.fontSizeSmall - 1 }
-                            ComboBox {
+                            spacing: 4
+                            StyledText { text: "Format"; font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText }
+                            DankDropdown {
                                 width: parent.width
-                                model: root.customMode === "video" ? ["mp4", "webm"] : ["mp3", "opus", "flac", "wav"]
-                                currentIndex: 0
-                                onCurrentTextChanged: root.customFormat = currentText
+                                compactMode: true
+                                options: root.customMode === "video" ? ["mp4", "webm"] : ["mp3", "opus", "flac", "wav"]
+                                currentValue: root.customFormat || (options.length > 0 ? options[0] : "")
+                                onValueChanged: (value) => root.customFormat = value
+                                Component.onCompleted: if (!root.customFormat && options.length > 0) root.customFormat = options[0]
                             }
                         }
 
-                        // Quality Combo
+                        // Quality Dropdown
                         Column {
                             width: (parent.width - Theme.spacingM) / 2
-                            spacing: 2
-                            StyledText { text: "Quality"; font.pixelSize: Theme.fontSizeSmall - 1 }
-                            ComboBox {
+                            spacing: 4
+                            StyledText { text: "Quality"; font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText }
+                            DankDropdown {
                                 width: parent.width
-                                model: root.customMode === "video" ? ["best", "1080p", "720p", "480p"] : ["best", "320k", "192k", "128k"]
-                                currentIndex: 0
-                                onCurrentTextChanged: root.customQuality = currentText
+                                compactMode: true
+                                options: root.customMode === "video" ? ["best", "1080p", "720p", "480p"] : ["best", "320k", "192k", "128k"]
+                                currentValue: root.customQuality || (options.length > 0 ? options[0] : "")
+                                onValueChanged: (value) => root.customQuality = value
+                                Component.onCompleted: if (!root.customQuality && options.length > 0) root.customQuality = options[0]
                             }
                         }
                     }
