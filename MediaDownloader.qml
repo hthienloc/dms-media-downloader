@@ -57,6 +57,8 @@ PluginComponent {
     property string ytdlpLatestVersion: ""
     property bool ytdlpOutdated: false
     property bool updatingYtdlp: false
+    property bool ytdlpPkgManaged: false
+    property string ytdlpPkgCmd: ""
 
     // Custom configuration states
     property string customFormat: ""
@@ -115,6 +117,7 @@ PluginComponent {
         Proc.runCommand("mediaDownloader.checkUpdate", ["yt-dlp", "--update"], (stdout, exitCode) => {
             var currentVersion = "";
             var latestVersion = "";
+            var isPkgManaged = false;
             var lines = stdout.split("\n");
             for (var i = 0; i < lines.length; i++) {
                 var line = lines[i].trim();
@@ -122,7 +125,15 @@ PluginComponent {
                     currentVersion = line.substring("Current version:".length).trim();
                 } else if (line.indexOf("Latest version:") === 0) {
                     latestVersion = line.substring("Latest version:".length).trim();
+                } else if (line.indexOf("package manager") !== -1 || line.indexOf("pip ") !== -1 || line.indexOf("PyPI") !== -1) {
+                    isPkgManaged = true;
                 }
+            }
+            
+            root.ytdlpPkgManaged = isPkgManaged;
+            
+            if (isPkgManaged) {
+                root.detectPkgManager();
             }
             
             if (currentVersion !== "") {
@@ -134,7 +145,7 @@ PluginComponent {
                     var lat = latestVersion.indexOf("@") !== -1 ? latestVersion.split("@")[1] : latestVersion;
                     lat = lat.split(" ")[0].trim();
                     root.ytdlpLatestVersion = lat;
-                    root.ytdlpOutdated = (cur !== lat);
+                    root.ytdlpOutdated = isPkgManaged ? false : (cur !== lat);
                 }
             } else {
                 Proc.runCommand("mediaDownloader.getVersion", ["yt-dlp", "--version"], (versionStdout, versionExitCode) => {
@@ -143,6 +154,25 @@ PluginComponent {
                     }
                 });
             }
+        });
+    }
+
+    function detectPkgManager() {
+        Proc.runCommand("mediaDownloader.detectPkg", ["sh", "-c", "\
+            if command -v pacman >/dev/null 2>&1; then \
+                echo 'sudo pacman -Syu yt-dlp'; \
+            elif command -v apt-get >/dev/null 2>&1; then \
+                echo 'sudo apt update && sudo apt install yt-dlp'; \
+            elif command -v dnf >/dev/null 2>&1; then \
+                echo 'sudo dnf update yt-dlp'; \
+            elif command -v pip3 >/dev/null 2>&1 && pip3 show yt-dlp >/dev/null 2>&1; then \
+                echo 'pip3 install -U yt-dlp'; \
+            elif command -v pip >/dev/null 2>&1 && pip show yt-dlp >/dev/null 2>&1; then \
+                echo 'pip install -U yt-dlp'; \
+            else \
+                echo 'your package manager'; \
+            fi"], (stdout) => {
+            root.ytdlpPkgCmd = stdout.trim();
         });
     }
 
@@ -162,6 +192,10 @@ PluginComponent {
                 root.checkYtdlpVersion();
             } else {
                 var isPkgManager = output.indexOf("package manager") !== -1 || output.indexOf("manual build") !== -1;
+                if (isPkgManager) {
+                    root.ytdlpPkgManaged = true;
+                    root.ytdlpOutdated = false;
+                }
                 var errorMsg = isPkgManager 
                     ? "Cannot update: yt-dlp was installed via package manager." 
                     : "Failed to update: " + (output.substring(0, 100) || "Unknown error");
@@ -178,7 +212,7 @@ PluginComponent {
     }
 
     // Function to add and start a download process
-    function startDownload(url, type, format, quality) {
+    function startDownload(url, type, format, quality, thumbnailUrl) {
         var path = (type === "audio") ? root.downloadPathAudio : root.downloadPathVideo;
         downloadsModel.append({
             url: url,
@@ -191,7 +225,8 @@ PluginComponent {
             format: format,
             quality: quality,
             fullPath: "",
-            downloadPath: path
+            downloadPath: path,
+            thumbnailUrl: thumbnailUrl || ""
         });
         
         var idx = downloadsModel.count - 1;
@@ -414,11 +449,26 @@ PluginComponent {
                     }
                 }
 
+                function _extractThumbnail(fp, idx) {
+                    if (!fp) return;
+                    var thumbDir = "/tmp/dms-media-downloader/";
+                    var thumbPath = thumbDir + "thumb_" + idx + ".jpg";
+                    Proc.runCommand("mediaDownloader.extractThumb" + idx,
+                        ["sh", "-c", "mkdir -p '" + thumbDir + "' && ffmpeg -y -i \"" + fp + "\" -an -vcodec copy -f image2 \"" + thumbPath + "\" 2>/dev/null"],
+                        function(stdout, exitCode2) {
+                            if (exitCode2 === 0)
+                                downloadsModel.setProperty(idx, "thumbnailUrl", "file://" + thumbPath);
+                        }
+                    );
+                }
+
                 onExited: (exitCode) => {
                     running = false;
                     if (exitCode === 0) {
                         downloadsModel.setProperty(index, "status", "completed");
                         downloadsModel.setProperty(index, "progress", 100);
+                        var fp = downloadsModel.get(index).fullPath || (downloadsModel.get(index).downloadPath + "/" + downloadsModel.get(index).title);
+                        _extractThumbnail(fp, index);
                         if (typeof ToastService !== "undefined" && ToastService) {
                             ToastService.showSuccess("Download Completed", downloadsModel.get(index).title || "File downloaded successfully");
                         }
@@ -590,81 +640,6 @@ PluginComponent {
                     }
                 }
 
-                // URL Preview Card
-                Rectangle {
-                    width: parent.width
-                    height: 80
-                    visible: root.activeUrl.length > 0 && (root.previewTitle !== "" || root.fetchingPreview)
-                    color: Theme.surfaceContainerHigh
-                    radius: Theme.cornerRadius
-                    border.color: Theme.withAlpha(Theme.outline, 0.1)
-                    clip: true
-
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: 8
-                        spacing: Theme.spacingM
-
-                        // Thumbnail
-                        Rectangle {
-                            width: 106
-                            height: 64
-                            radius: Theme.cornerRadiusSmall
-                            color: Theme.surfaceContainerLowest
-                            clip: true
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Image {
-                                anchors.fill: parent
-                                source: root.previewThumbnail
-                                fillMode: Image.PreserveAspectCrop
-                                visible: root.previewThumbnail !== ""
-                            }
-
-                            BusyIndicator {
-                                anchors.centerIn: parent
-                                running: root.fetchingPreview
-                                visible: root.fetchingPreview
-                            }
-
-                            DankIcon {
-                                anchors.centerIn: parent
-                                name: "music_video"
-                                size: 24
-                                color: Theme.surfaceVariantText
-                                visible: !root.fetchingPreview && root.previewThumbnail === ""
-                            }
-                        }
-
-                        // Details
-                        Column {
-                            width: parent.width - 122
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 4
-
-                            StyledText {
-                                text: root.previewTitle
-                                font.weight: Font.Bold
-                                font.pixelSize: Theme.fontSizeSmall
-                                color: Theme.surfaceText
-                                elide: Text.ElideRight
-                                width: parent.width
-                                maximumLineCount: 1
-                            }
-
-                            StyledText {
-                                text: root.previewAuthor
-                                font.pixelSize: Theme.fontSizeSmall - 2
-                                color: Theme.surfaceVariantText
-                                elide: Text.ElideRight
-                                width: parent.width
-                                maximumLineCount: 1
-                                visible: root.previewAuthor !== ""
-                            }
-                        }
-                    }
-                }
-
                 // Grid of 4 download options (when URL is loaded)
                 Grid {
                     width: parent.width
@@ -681,7 +656,7 @@ PluginComponent {
                         titleFontSize: Theme.fontSizeSmall
                         subtitle: root.quickVideoRes + " (" + root.quickVideoFormat.toUpperCase() + ")"
                         onClicked: {
-                            root.startDownload(root.activeUrl, "video", root.quickVideoFormat, root.quickVideoRes);
+                            root.startDownload(root.activeUrl, "video", root.quickVideoFormat, root.quickVideoRes, root.previewThumbnail);
                             root.activeUrl = "";
                             urlInput.text = "";
                         }
@@ -696,7 +671,7 @@ PluginComponent {
                         titleFontSize: Theme.fontSizeSmall
                         subtitle: root.quickAudioFormat.toUpperCase() + " (" + root.quickAudioQuality + ")"
                         onClicked: {
-                            root.startDownload(root.activeUrl, "audio", root.quickAudioFormat, root.quickAudioQuality);
+                            root.startDownload(root.activeUrl, "audio", root.quickAudioFormat, root.quickAudioQuality, root.previewThumbnail);
                             root.activeUrl = "";
                             urlInput.text = "";
                         }
@@ -785,7 +760,7 @@ PluginComponent {
                         backgroundColor: Theme.primary
                         textColor: Theme.onPrimary
                         onClicked: {
-                            root.startDownload(root.activeUrl, root.customMode, root.customFormat, root.customQuality);
+                            root.startDownload(root.activeUrl, root.customMode, root.customFormat, root.customQuality, root.previewThumbnail);
                             root.activeUrl = "";
                             root.customMode = "";
                             urlInput.text = "";
@@ -836,12 +811,9 @@ PluginComponent {
                     height: {
                         var h = 300;
                         if (root.activeUrl !== "") {
-                            h -= 120; // portion of grid/spacing
-                            if (root.previewTitle !== "" || root.fetchingPreview) {
-                                h -= 96;
-                            }
+                            h -= 130; // 2 rows of ActionTile (64px) + spacing
                             if (root.customMode !== "") {
-                                h -= 80;
+                                h -= 90;
                             }
                         }
                         return Math.max(100, h);
@@ -856,134 +828,163 @@ PluginComponent {
                             model: downloadsModel
                             delegate: Rectangle {
                                 width: parent.width
-                                height: 72
+                                readonly property bool isCompleted: model.status === "completed"
+                                readonly property bool hasThumb: model.thumbnailUrl && model.thumbnailUrl !== ""
+                                height: isCompleted ? 88 : 72
                                 color: Theme.surfaceContainerHigh
                                 radius: Theme.cornerRadius
                                 border.color: Theme.withAlpha(Theme.outline, 0.1)
                                 clip: true
 
-                                Column {
+                                Row {
                                     anchors.fill: parent
-                                    anchors.topMargin: 8
-                                    anchors.bottomMargin: 8
+                                    anchors.topMargin: 10
+                                    anchors.bottomMargin: 14
                                     anchors.leftMargin: Theme.spacingM
                                     anchors.rightMargin: Theme.spacingM
-                                    spacing: 4
+                                    spacing: Theme.spacingM
 
-                                    Item {
-                                        width: parent.width
-                                        height: Math.max(titleText.implicitHeight, progressText.implicitHeight)
+                                    // Thumbnail for completed downloads
+                                    Rectangle {
+                                        width: 52
+                                        height: 52
+                                        radius: Theme.cornerRadiusSmall
+                                        color: Theme.surfaceContainerLowest
+                                        clip: true
+                                        visible: isCompleted && hasThumb
+                                        anchors.verticalCenter: parent.verticalCenter
 
-                                        StyledText {
-                                            id: titleText
-                                            text: model.title
-                                            anchors.left: parent.left
-                                            anchors.right: progressText.left
-                                            anchors.rightMargin: Theme.spacingM
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            elide: Text.ElideRight
-                                            font.pixelSize: Theme.fontSizeSmall
-                                            font.weight: Font.Medium
-                                        }
-                                        StyledText {
-                                            id: progressText
-                                            text: model.status === "completed" ? "Done" : (model.status === "error" ? "Error" : (model.status === "cancelled" ? "Cancelled" : (model.status === "embedding" ? "Embedding..." : model.progress + "%")))
-                                            anchors.right: parent.right
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            font.pixelSize: Theme.fontSizeSmall - 1
-                                            color: model.status === "error" ? Theme.error : (model.status === "completed" ? Theme.success : (model.status === "embedding" ? Theme.success : Theme.primary))
+                                        Image {
+                                            anchors.fill: parent
+                                            source: model.thumbnailUrl
+                                            fillMode: Image.PreserveAspectCrop
                                         }
                                     }
 
-                                    Item {
-                                        width: parent.width
-                                        height: 32
+                                    Column {
+                                        width: {
+                                            if (isCompleted && hasThumb) parent.width - 52 - Theme.spacingM
+                                            else parent.width
+                                        }
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 4
 
-                                        StyledText {
-                                            text: model.status === "downloading" ? model.speed + " - ETA " + model.eta : (model.status === "fetching" ? "Initializing..." : "")
-                                            font.pixelSize: Theme.fontSizeSmall - 2
-                                            color: Theme.surfaceVariantText
-                                            anchors.left: parent.left
-                                            anchors.right: actionButtonsRow.left
-                                            anchors.rightMargin: Theme.spacingS
-                                            elide: Text.ElideRight
-                                            anchors.verticalCenter: parent.verticalCenter
+                                        Item {
+                                            width: parent.width
+                                            height: Math.max(titleText.implicitHeight, progressText.implicitHeight)
+
+                                            StyledText {
+                                                id: titleText
+                                                text: model.title
+                                                anchors.left: parent.left
+                                                anchors.right: progressText.left
+                                                anchors.rightMargin: Theme.spacingM
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                elide: Text.ElideRight
+                                                font.pixelSize: Theme.fontSizeSmall
+                                                font.weight: Font.Medium
+                                            }
+                                            StyledText {
+                                                id: progressText
+                                                text: model.status === "completed" ? "Done" : (model.status === "error" ? "Error" : (model.status === "cancelled" ? "Cancelled" : (model.status === "embedding" ? "Embedding..." : model.progress + "%")))
+                                                anchors.right: parent.right
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                font.pixelSize: Theme.fontSizeSmall - 1
+                                                color: model.status === "error" ? Theme.error : (model.status === "completed" ? Theme.success : (model.status === "embedding" ? Theme.success : Theme.primary))
+                                            }
                                         }
 
-                                        Row {
-                                            id: actionButtonsRow
-                                            anchors.right: parent.right
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            spacing: 4
+                                        Item {
+                                            width: parent.width
+                                            height: 28
 
-                                            // Cancel Button
-                                            DankActionButton {
-                                                visible: model.status === "downloading" || model.status === "fetching"
-                                                iconName: "close"
-                                                iconColor: Theme.error
-                                                tooltipText: I18n.tr("Cancel")
-                                                onClicked: {
-                                                    downloadsModel.setProperty(index, "status", "cancelled");
-                                                }
+                                            StyledText {
+                                                text: model.status === "downloading" ? model.speed + " - ETA " + model.eta : (model.status === "fetching" ? "Initializing..." : "")
+                                                font.pixelSize: Theme.fontSizeSmall - 2
+                                                color: Theme.surfaceVariantText
+                                                anchors.left: parent.left
+                                                anchors.right: actionButtonsRow.left
+                                                anchors.rightMargin: Theme.spacingS
+                                                elide: Text.ElideRight
+                                                anchors.verticalCenter: parent.verticalCenter
                                             }
 
-                                            // Retry Button
-                                            DankActionButton {
-                                                visible: model.status === "error" || model.status === "cancelled"
-                                                iconName: "refresh"
-                                                iconColor: Theme.primary
-                                                tooltipText: I18n.tr("Retry")
-                                                onClicked: {
-                                                    downloadsModel.setProperty(index, "status", "fetching");
-                                                    downloadsModel.setProperty(index, "progress", 0);
-                                                    downloadsModel.setProperty(index, "speed", "0 B/s");
-                                                    downloadsModel.setProperty(index, "eta", "--:--");
-                                                    root.startDownload(model.url, model.type, model.format, model.quality, model.downloadPath);
-                                                    downloadsModel.remove(index);
-                                                }
-                                            }
+                                            Row {
+                                                id: actionButtonsRow
+                                                anchors.right: parent.right
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                spacing: 4
 
-                                            // Play Music/Video Button
-                                            DankActionButton {
-                                                visible: model.status === "completed"
-                                                iconName: "play_arrow"
-                                                iconColor: Theme.primary
-                                                tooltipText: I18n.tr("Play")
-                                                onClicked: {
-                                                    let p = model.fullPath || (model.downloadPath + "/" + model.title);
-                                                    Quickshell.execDetached(["xdg-open", p]);
+                                                // Cancel Button
+                                                DankActionButton {
+                                                    visible: model.status === "downloading" || model.status === "fetching"
+                                                    iconName: "close"
+                                                    iconColor: Theme.error
+                                                    tooltipText: I18n.tr("Cancel")
+                                                    onClicked: {
+                                                        downloadsModel.setProperty(index, "status", "cancelled");
+                                                    }
                                                 }
-                                            }
 
-                                            // Open File Button
-                                            DankActionButton {
-                                                visible: model.status === "completed"
-                                                iconName: "open_in_new"
-                                                iconColor: Theme.primary
-                                                tooltipText: I18n.tr("Open File")
-                                                onClicked: {
-                                                    let p = model.fullPath || (model.downloadPath + "/" + model.title);
-                                                    Quickshell.execDetached(["xdg-open", p]);
+                                                // Retry Button
+                                                DankActionButton {
+                                                    visible: model.status === "error" || model.status === "cancelled"
+                                                    iconName: "refresh"
+                                                    iconColor: Theme.primary
+                                                    tooltipText: I18n.tr("Retry")
+                                                    onClicked: {
+                                                        downloadsModel.setProperty(index, "status", "fetching");
+                                                        downloadsModel.setProperty(index, "progress", 0);
+                                                        downloadsModel.setProperty(index, "speed", "0 B/s");
+                                                        downloadsModel.setProperty(index, "eta", "--:--");
+                                                        downloadsModel.setProperty(index, "title", "Fetching title...");
+                                                        root.startDownload(model.url, model.type, model.format, model.quality, model.thumbnailUrl);
+                                                        downloadsModel.remove(index);
+                                                    }
                                                 }
-                                            }
 
-                                            // Open Folder Button
-                                            DankActionButton {
-                                                visible: model.status === "completed"
-                                                iconName: "folder"
-                                                iconColor: Theme.primary
-                                                tooltipText: I18n.tr("Open Folder")
-                                                onClicked: {
-                                                    let p = model.fullPath || (model.downloadPath + "/" + model.title);
-                                                    let dir = p.substring(0, p.lastIndexOf("/"));
-                                                    Quickshell.execDetached(["xdg-open", dir]);
+                                                // Play Music/Video Button
+                                                DankActionButton {
+                                                    visible: isCompleted
+                                                    iconName: "play_arrow"
+                                                    iconColor: Theme.primary
+                                                    tooltipText: I18n.tr("Play")
+                                                    onClicked: {
+                                                        let p = model.fullPath || (model.downloadPath + "/" + model.title);
+                                                        Quickshell.execDetached(["xdg-open", p]);
+                                                    }
+                                                }
+
+                                                // Open File Button
+                                                DankActionButton {
+                                                    visible: isCompleted
+                                                    iconName: "open_in_new"
+                                                    iconColor: Theme.primary
+                                                    tooltipText: I18n.tr("Open File")
+                                                    onClicked: {
+                                                        let p = model.fullPath || (model.downloadPath + "/" + model.title);
+                                                        Quickshell.execDetached(["xdg-open", p]);
+                                                    }
+                                                }
+
+                                                // Open Folder Button
+                                                DankActionButton {
+                                                    visible: isCompleted
+                                                    iconName: "folder"
+                                                    iconColor: Theme.primary
+                                                    tooltipText: I18n.tr("Open Folder")
+                                                    onClicked: {
+                                                        let p = model.fullPath || (model.downloadPath + "/" + model.title);
+                                                        let dir = p.substring(0, p.lastIndexOf("/"));
+                                                        Quickshell.execDetached(["xdg-open", dir]);
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
 
-                                // Dynamic Progress Bar (anchored to bottom of the card)
+                                // Dynamic Progress Bar — anchored with gap
                                 Rectangle {
                                     anchors.bottom: parent.bottom
                                     anchors.left: parent.left
@@ -1002,7 +1003,7 @@ PluginComponent {
                                     anchors.fill: parent
                                     acceptedButtons: Qt.RightButton
                                     onClicked: (mouse) => {
-                                        if (mouse.button === Qt.RightButton && model.status === "completed") {
+                                        if (mouse.button === Qt.RightButton && isCompleted) {
                                             root.activeHistoryIndex = index;
                                             historyMenu.open(mouse.x, mouse.y);
                                         }
@@ -1023,14 +1024,18 @@ PluginComponent {
                     DankIcon {
                         name: root.ytdlpOutdated ? "warning" : "info"
                         size: 12
-                        color: root.ytdlpOutdated ? Theme.error : Theme.surfaceVariantText
+                        color: root.ytdlpOutdated ? Theme.error : (root.ytdlpPkgManaged ? Theme.surfaceVariantText : Theme.surfaceVariantText)
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
                     StyledText {
-                        text: root.ytdlpOutdated 
-                            ? "yt-dlp v" + root.ytdlpVersion + " (Update available: v" + root.ytdlpLatestVersion + ")" 
-                            : "yt-dlp v" + root.ytdlpVersion
+                        text: {
+                            if (root.ytdlpPkgManaged)
+                                return "yt-dlp v" + root.ytdlpVersion + " (via " + (root.ytdlpPkgCmd || "package manager") + ")";
+                            if (root.ytdlpOutdated)
+                                return "yt-dlp v" + root.ytdlpVersion + " (Update available: v" + root.ytdlpLatestVersion + ")";
+                            return "yt-dlp v" + root.ytdlpVersion;
+                        }
                         font.pixelSize: Theme.fontSizeSmall - 2
                         color: root.ytdlpOutdated ? Theme.error : Theme.surfaceVariantText
                         anchors.verticalCenter: parent.verticalCenter
@@ -1038,7 +1043,7 @@ PluginComponent {
 
                     DankButton {
                         text: "Update"
-                        visible: root.ytdlpOutdated && !root.updatingYtdlp
+                        visible: root.ytdlpOutdated && !root.updatingYtdlp && !root.ytdlpPkgManaged
                         buttonHeight: 20
                         horizontalPadding: Theme.spacingS
                         backgroundColor: Theme.withAlpha(Theme.primary, 0.1)
