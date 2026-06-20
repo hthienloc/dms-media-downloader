@@ -848,7 +848,7 @@ PluginComponent {
                                     Rectangle {
                                         width: 52
                                         height: 52
-                                        radius: Theme.cornerRadiusSmall
+                                        radius: Theme.cornerRadius / 2
                                         color: Theme.surfaceContainerLowest
                                         clip: true
                                         visible: isCompleted && hasThumb
@@ -1138,7 +1138,7 @@ PluginComponent {
                         Rectangle {
                             anchors.fill: parent
                             color: parent.containsMouse ? Theme.withAlpha(Theme.primary, 0.1) : "transparent"
-                            radius: Theme.cornerRadiusSmall
+                            radius: Theme.cornerRadius / 2
                         }
 
                         Row {
